@@ -1,0 +1,7 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/bibnumca/public_html/donalgros-gestion.com/
+    - /usr/local/bin/npm install --prefix /home/bibnumca/react_repo
+    - /usr/local/bin/npm run build --prefix /home/bibnumca/react_repo
+    - cp -r /home/bibnumca/react_repo/dist/* $DEPLOYPATH

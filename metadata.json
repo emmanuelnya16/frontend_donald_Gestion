@@ -1,0 +1,5 @@
+{
+  "name": "Gestion_Com",
+  "description": "Système de gestion des ventes multi-boutiques avec suivi des stocks, transferts et rapports automatisés.",
+  "requestFramePermissions": []
+}
