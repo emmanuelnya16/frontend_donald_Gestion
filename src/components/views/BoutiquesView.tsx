@@ -129,20 +129,20 @@ export default function BoutiquesView({ user }: BoutiquesViewProps) {
           <p className="text-sm text-slate-500 font-medium">Configurez et gérez vos points de vente</p>
         </div>
         
-        <div className="flex items-center gap-4">
-          <div className="relative">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+          <div className="relative w-full sm:w-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input 
               type="text" 
               placeholder="Rechercher une boutique..."
-              className="input-field pl-10 py-2 w-64"
+              className="input-field pl-10 py-2 w-full sm:w-64"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           <button 
             onClick={() => handleOpenModal()}
-            className="btn-primary flex items-center gap-2"
+            className="btn-primary flex justify-center items-center gap-2"
           >
             <Plus className="w-5 h-5" /> Nouvelle Boutique
           </button>

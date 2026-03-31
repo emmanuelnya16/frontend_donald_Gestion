@@ -98,7 +98,7 @@ export default function CorrectionsView({ user }: CorrectionsViewProps) {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
           <input 
             type="text" 
-            className="input-field pl-12 py-3"
+            className="input-field pl-12 py-3 w-full"
             placeholder="Rechercher une facture..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -112,8 +112,8 @@ export default function CorrectionsView({ user }: CorrectionsViewProps) {
             <RefreshCw className="w-8 h-8 animate-spin text-brand-blue" />
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className="overflow-x-auto whitespace-nowrap">
+            <table className="w-full min-w-max">
             <thead>
               <tr className="text-left text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
                 <th className="px-8 py-6">Facture</th>

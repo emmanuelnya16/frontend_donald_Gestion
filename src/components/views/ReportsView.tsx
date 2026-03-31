@@ -43,6 +43,7 @@ export default function ReportsView({ user }: ReportsViewProps) {
   const [selectedBoutique, setSelectedBoutique] = useState<string>(
     user.role === 'ROLE_ADMIN' ? '' : (user.boutiqueId || '')
   );
+  const [period, setPeriod] = useState<'all' | 'day' | 'week' | 'month'>('all');
   const [boutiques, setBoutiques] = useState<Boutique[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,14 +76,14 @@ export default function ReportsView({ user }: ReportsViewProps) {
   // Generate report when filters change
   useEffect(() => {
     generateReport();
-  }, [activeTab, selectedBoutique]);
+  }, [activeTab, selectedBoutique, period]);
 
   const generateReport = async () => {
     setLoading(true);
     setError(null);
     try {
       if (activeTab === 'sales' && selectedBoutique) {
-        const data = await reportService.getBoutiqueSales(selectedBoutique);
+        const data = await reportService.getBoutiqueSales(selectedBoutique, period);
         setSalesReport(data);
       } else if (activeTab === 'comparison' && isAdmin) {
         const data = await reportService.getComparison();
@@ -242,8 +243,8 @@ export default function ReportsView({ user }: ReportsViewProps) {
                 Dernières Ventes
               </h3>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
+            <div className="overflow-x-auto whitespace-nowrap">
+              <table className="w-full min-w-max">
                 <thead>
                   <tr className="text-left text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
                     <th className="pb-4">Date</th>
@@ -416,8 +417,8 @@ export default function ReportsView({ user }: ReportsViewProps) {
               {compBoutiques.length} boutique{compBoutiques.length > 1 ? 's' : ''}
             </span>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className="overflow-x-auto whitespace-nowrap">
+            <table className="w-full min-w-max">
               <thead>
                 <tr className="text-left text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
                   <th className="pb-4 pl-2">#</th>
@@ -517,7 +518,8 @@ export default function ReportsView({ user }: ReportsViewProps) {
           </div>
           <p className="text-sm text-slate-500 ml-12">
             {activeTab === 'sales'
-              ? `Rapport des ventes — ${boutiques.find(b => b.id === selectedBoutique)?.name || 'Sélectionnez une boutique'}`
+              ? `Rapport des ventes — ${boutiques.find(b => b.id === selectedBoutique)?.name || 'Sélectionnez une boutique'}` + 
+                (period === 'day' ? ' (Aujourd\'hui)' : period === 'week' ? ' (Cette semaine)' : period === 'month' ? ' (Ce mois)' : ' (Global)')
               : 'Comparaison globale de toutes les boutiques'}
           </p>
         </div>
@@ -543,21 +545,40 @@ export default function ReportsView({ user }: ReportsViewProps) {
           </div>
 
           {/* Boutique Selector (only for sales tab) */}
-          {activeTab === 'sales' && isAdmin && (
-            <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-sm">
-              <Store className="w-4 h-4 text-slate-400" />
-              <select
-                className="bg-transparent text-sm font-bold text-slate-600 outline-none"
-                value={selectedBoutique}
-                onChange={(e) => setSelectedBoutique(e.target.value)}
-              >
-                {boutiques.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name.split(' - ')[0]}
-                  </option>
-                ))}
-              </select>
-            </div>
+          {activeTab === 'sales' && (
+            <>
+              {isAdmin && (
+                <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-sm">
+                  <Store className="w-4 h-4 text-slate-400" />
+                  <select
+                    className="bg-transparent text-sm font-bold text-slate-600 outline-none w-full"
+                    value={selectedBoutique}
+                    onChange={(e) => setSelectedBoutique(e.target.value)}
+                  >
+                    {boutiques.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name.split(' - ')[0]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              
+              {/* Period Selector */}
+              <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-sm">
+                <Clock className="w-4 h-4 text-slate-400" />
+                <select
+                  className="bg-transparent text-sm font-bold text-slate-600 outline-none w-full"
+                  value={period}
+                  onChange={(e) => setPeriod(e.target.value as any)}
+                >
+                  <option value="all">Global (Tout)</option>
+                  <option value="day">Aujourd'hui</option>
+                  <option value="week">Cette semaine</option>
+                  <option value="month">Ce mois</option>
+                </select>
+              </div>
+            </>
           )}
 
           {/* Refresh */}

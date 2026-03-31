@@ -91,11 +91,21 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
 
   return (
     <div className="flex h-screen overflow-hidden bg-brand-light">
+      {/* Mobile Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <motion.aside 
         initial={false}
         animate={{ width: isSidebarOpen ? 280 : 80 }}
-        className="bg-brand-blue text-white flex flex-col transition-all duration-300 z-20"
+        className={`bg-brand-blue text-white flex flex-col transition-all duration-300 z-50 fixed inset-y-0 left-0 md:relative ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        }`}
       >
         <div className="p-6 flex items-center justify-between">
           {isSidebarOpen && (
@@ -139,24 +149,31 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
             className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-white/70 hover:bg-red-500/20 hover:text-red-400 transition-all duration-200"
           >
             <LogOut className="w-5 h-5 flex-shrink-0" />
-            {isSidebarOpen && <span>Déconnexion</span>}
+            {(isSidebarOpen || window.innerWidth < 768) && <span>Déconnexion</span>}
           </button>
         </div>
       </motion.aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col w-full md:w-auto overflow-hidden">
         {/* Header */}
-        <header className="h-20 bg-white border-b border-slate-200 px-8 flex items-center justify-between">
-          <div className="flex flex-col">
-            <h2 className="text-xl font-bold text-brand-dark">
-              {menuItems.find(i => i.id === activeTab)?.label}
-            </h2>
-            <p className="text-sm text-slate-500">
-              {user.role === 'ROLE_ADMIN' ? 'Administration Globale' : currentBoutique?.name}
-            </p>
+        <header className="h-20 bg-white border-b border-slate-200 px-4 sm:px-8 flex items-center justify-between">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <button 
+              onClick={() => setIsSidebarOpen(true)}
+              className="p-2 -ml-2 md:hidden text-slate-600 hover:bg-slate-100 rounded-lg"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            <div className="flex flex-col">
+              <h2 className="text-lg sm:text-xl font-bold text-brand-dark">
+                {menuItems.find(i => i.id === activeTab)?.label}
+              </h2>
+              <p className="text-sm text-slate-500">
+                {user.role === 'ROLE_ADMIN' ? 'Administration Globale' : currentBoutique?.name}
+              </p>
+            </div>
           </div>
-
           <div className="flex items-center gap-6">
             <AlertDropdown user={user} />
             <div className="h-8 w-px bg-slate-200"></div>
@@ -175,7 +192,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
         </header>
 
         {/* View Container */}
-        <div className="flex-1 overflow-y-auto p-8">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}

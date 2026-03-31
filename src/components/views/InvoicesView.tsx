@@ -82,8 +82,8 @@ export default function InvoicesView({ user }: InvoicesViewProps) {
           <p className="text-sm text-slate-500 mt-1">Historique des factures et export PDF</p>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1 md:w-80">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+          <div className="relative w-full sm:w-auto md:w-80">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
             <input 
               type="text" 
@@ -97,7 +97,7 @@ export default function InvoicesView({ user }: InvoicesViewProps) {
             <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
             <input 
               type="date" 
-              className="input-field pl-12 py-3 w-auto"
+              className="input-field pl-12 py-3 w-full sm:w-auto"
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
             />
@@ -119,8 +119,8 @@ export default function InvoicesView({ user }: InvoicesViewProps) {
             <RefreshCw className="w-8 h-8 animate-spin text-brand-blue" />
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className="overflow-x-auto whitespace-nowrap">
+            <table className="w-full min-w-max">
             <thead>
               <tr className="text-left text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
                 <th className="px-8 py-6">N° Facture</th>

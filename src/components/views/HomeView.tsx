@@ -65,7 +65,7 @@ export default function HomeView({ user, onNavigate }: HomeViewProps) {
       const todaySales = filteredSales.filter(s => s.timestamp.startsWith(today) && s.status === 'COMPLETED');
 
       setStats({
-        totalSales: todaySales.reduce((acc, s) => acc + s.totalPrice, 0),
+        totalSales: todaySales.reduce((acc, s) => acc + Number(s.totalPrice), 0),
         transactionCount: todaySales.length,
         lowStockCount: filteredStock.filter(s => s.isLowStock).length,
         transferCount: filteredSales.filter(s => s.timestamp.startsWith(today) && (s.items?.some(i => i.isTransfer) || false)).length,
@@ -87,7 +87,7 @@ export default function HomeView({ user, onNavigate }: HomeViewProps) {
     const today = new Date().toISOString().split('T')[0];
     return sales
       .filter(s => s.boutique.id === boutiqueId && s.timestamp.startsWith(today) && s.status === 'COMPLETED')
-      .reduce((acc, s) => acc + s.totalPrice, 0);
+      .reduce((acc, s) => acc + Number(s.totalPrice), 0);
   };
 
   const statCards = [
@@ -97,10 +97,19 @@ export default function HomeView({ user, onNavigate }: HomeViewProps) {
     { label: 'Transferts', value: stats.transferCount, icon: ArrowLeftRight, color: 'text-indigo-600', bg: 'bg-indigo-50' },
   ];
 
+  if (loading && stats.totalSales === 0 && boutiques.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
+        <RefreshCw className="w-12 h-12 text-brand-blue animate-spin" />
+        <p className="text-slate-500 font-medium">Chargement du tableau de bord...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((card, i) => (
           <div key={i} className="card flex items-center gap-4 border-none shadow-md hover:shadow-lg transition-shadow">
             <div className={`p-4 rounded-2xl ${card.bg}`}>
@@ -158,8 +167,8 @@ export default function HomeView({ user, onNavigate }: HomeViewProps) {
               Voir tout <ChevronRight className="w-4 h-4" />
             </button>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className="overflow-x-auto whitespace-nowrap">
+            <table className="w-full min-w-max">
               <thead>
                 <tr className="text-left text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
                   <th className="pb-4">Facture</th>

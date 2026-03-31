@@ -169,20 +169,20 @@ export default function CatalogView() {
           <p className="text-sm text-slate-500 font-medium">Gérez le référentiel des articles et suivez les stocks globaux</p>
         </div>
         
-        <div className="flex items-center gap-4">
-          <div className="relative">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+          <div className="relative w-full sm:w-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input 
               type="text" 
               placeholder="Rechercher un article..."
-              className="input-field pl-10 py-2 w-64"
+              className="input-field pl-10 py-2 w-full sm:w-64"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           <button 
             onClick={() => handleOpenModal()}
-            className="btn-primary flex items-center gap-2"
+            className="btn-primary flex justify-center items-center gap-2"
           >
             <Plus className="w-5 h-5" /> Nouvel Article
           </button>
@@ -190,7 +190,8 @@ export default function CatalogView() {
       </div>
 
       <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
-        <table className="w-full">
+        <div className="overflow-x-auto whitespace-nowrap">
+          <table className="w-full min-w-max">
           <thead>
             <tr className="bg-slate-50/50 text-left text-xs font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
               <th className="px-8 py-6">Article</th>
@@ -273,6 +274,7 @@ export default function CatalogView() {
           </tbody>
         </table>
       </div>
+    </div>
 
       {/* Modal */}
       <AnimatePresence>

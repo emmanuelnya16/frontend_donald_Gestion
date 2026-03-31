@@ -200,6 +200,15 @@ export default function StockView({ user }: StockViewProps) {
     return matchesSearch && matchesBoutique && matchesFilter;
   });
 
+  if (loading && stock.length === 0 && boutiques.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
+        <RefreshCw className="w-12 h-12 text-brand-blue animate-spin" />
+        <p className="text-slate-500 font-medium">Chargement du stock...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -231,48 +240,50 @@ export default function StockView({ user }: StockViewProps) {
       {activeTab === 'STOCK' ? (
         <>
           {/* Filters Bar */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1 md:w-80">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input 
-                  type="text" 
-                  className="input-field pl-12 py-3"
-                  placeholder="Rechercher un article..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+          <div className="flex flex-col md:flex-row justify-between gap-4">
+            <div className="relative w-full md:w-80">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <input 
+                type="text" 
+                className="input-field pl-12 py-3 w-full"
+                placeholder="Rechercher un article..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-4">
+              {user.role === 'ROLE_ADMIN' && (
+                <select 
+                  className="input-field py-3 font-semibold w-full sm:w-auto"
+                  value={selectedBoutique}
+                  onChange={(e) => setSelectedBoutique(e.target.value)}
+                >
+                  <option value="ALL">Toutes les boutiques</option>
+                  {boutiques.map(b => (
+                    <option key={b.id} value={b.id}>{b.name.split(' - ')[0]}</option>
+                  ))}
+                </select>
+              )}
+              
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button 
+                  onClick={() => setIsCatalogModalOpen(true)}
+                  className="btn-primary bg-slate-800 hover:bg-slate-900 flex items-center justify-center gap-2"
+                >
+                  <Package className="w-5 h-5" /> Ajouter du catalogue
+                </button>
+                {user.role === 'ROLE_BOUTIQUE' && (
+                  <button 
+                    onClick={() => setIsProposeModalOpen(true)}
+                    className="btn-primary flex items-center justify-center gap-2"
+                  >
+                    <Plus className="w-5 h-5" /> Proposer un article
+                  </button>
+                )}
               </div>
-          {user.role === 'ROLE_ADMIN' && (
-            <select 
-              className="input-field py-3 w-auto font-semibold"
-              value={selectedBoutique}
-              onChange={(e) => setSelectedBoutique(e.target.value)}
-            >
-              <option value="ALL">Toutes les boutiques</option>
-              {boutiques.map(b => (
-                <option key={b.id} value={b.id}>{b.name.split(' - ')[0]}</option>
-              ))}
-            </select>
-          )}
-          <div className="flex gap-2">
-            <button 
-              onClick={() => setIsCatalogModalOpen(true)}
-              className="btn-primary bg-slate-800 hover:bg-slate-900 flex items-center gap-2"
-            >
-              <Package className="w-5 h-5" /> Ajouter du catalogue
-            </button>
-            {user.role === 'ROLE_BOUTIQUE' && (
-              <button 
-                onClick={() => setIsProposeModalOpen(true)}
-                className="btn-primary flex items-center gap-2"
-              >
-                <Plus className="w-5 h-5" /> Proposer un article
-              </button>
-            )}
+            </div>
           </div>
-        </div>
-      </div>
 
       {/* Filters */}
       <div className="flex items-center gap-4 overflow-x-auto pb-2">
@@ -304,8 +315,8 @@ export default function StockView({ user }: StockViewProps) {
 
       {/* Stock Table */}
       <div className="card border-none shadow-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        <div className="overflow-x-auto whitespace-nowrap">
+          <table className="w-full min-w-max">
             <thead>
               <tr className="text-left text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
                 <th className="px-8 py-6">Article</th>
@@ -424,8 +435,8 @@ export default function StockView({ user }: StockViewProps) {
         </>
       ) : (
         <div className="card border-none shadow-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className="overflow-x-auto whitespace-nowrap">
+            <table className="w-full min-w-max">
               <thead>
                 <tr className="text-left text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
                   <th className="px-8 py-6">Date</th>

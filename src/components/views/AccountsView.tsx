@@ -143,20 +143,20 @@ export default function AccountsView() {
           <p className="text-sm text-slate-500 font-medium">Gérez les accès administrateurs et vendeurs</p>
         </div>
         
-        <div className="flex items-center gap-4">
-          <div className="relative">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+          <div className="relative w-full sm:w-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input 
               type="text" 
               placeholder="Rechercher un compte..."
-              className="input-field pl-10 py-2 w-64"
+              className="input-field pl-10 py-2 w-full sm:w-64"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           <button 
             onClick={() => handleOpenModal()}
-            className="btn-primary flex items-center gap-2"
+            className="btn-primary flex justify-center items-center gap-2"
           >
             <Plus className="w-5 h-5" /> Nouveau Compte
           </button>
@@ -176,7 +176,8 @@ export default function AccountsView() {
         </div>
       ) : (
         <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden" key="accounts-table-container">
-          <table className="w-full">
+          <div className="overflow-x-auto whitespace-nowrap">
+            <table className="w-full min-w-max">
             <thead>
               <tr className="bg-slate-50/50 text-left text-xs font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
                 <th className="px-8 py-6">Utilisateur</th>
@@ -254,6 +255,7 @@ export default function AccountsView() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 

@@ -8,7 +8,7 @@ import axios from 'axios';
 // Point to your Symfony backend. 
 // If running in AI Studio, you might need to use the full URL of your backend if it's hosted.
 // If running locally, http://localhost:8000 is the standard Symfony port.
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.donalgros-gestion.com';
 
 const api = axios.create({
   baseURL: API_URL,
