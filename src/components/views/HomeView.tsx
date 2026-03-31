@@ -94,7 +94,7 @@ export default function HomeView({ user, onNavigate }: HomeViewProps) {
     { label: 'Ventes du jour', value: `${stats.totalSales.toLocaleString()} FCFA`, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { label: 'Transactions', value: stats.transactionCount, icon: CheckCircle2, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'Alertes Stock', value: stats.lowStockCount, icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-50' },
-    { label: 'Transferts', value: stats.transferCount, icon: ArrowLeftRight, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+    { label: 'Navettes', value: stats.transferCount, icon: ArrowLeftRight, color: 'text-indigo-600', bg: 'bg-indigo-50' },
   ];
 
   if (loading && stats.totalSales === 0 && boutiques.length === 0) {

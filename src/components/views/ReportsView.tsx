@@ -175,7 +175,7 @@ export default function ReportsView({ user }: ReportsViewProps) {
           />
           <SummaryCard
             icon={ArrowLeftRight}
-            label="Transferts"
+            label="Navettes"
             value={transferItems.length.toString()}
             variant="indigo"
           />

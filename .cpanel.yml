@@ -3,4 +3,8 @@ deployment:
   tasks:
     - cd /home/bibnumca/react_repo && npm install
     - cd /home/bibnumca/react_repo && npm run build
+<<<<<<< HEAD
     - cp -r /home/bibnumca/react_repo/dist/. /home/bibnumca/public_html/donalgros-gestion.com/
+=======
+    - cp -r /home/bibnumca/react_repo/dist/. /home/bibnumca/public_html/donalgros-gestion.com/
+>>>>>>> 06e31c6695249bc18507934a594d041a6ae083f4

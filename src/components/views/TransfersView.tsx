@@ -77,7 +77,7 @@ export default function TransfersView({ user }: TransfersViewProps) {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex flex-col">
-          <h2 className="text-2xl font-bold text-brand-dark tracking-tight">Historique des Transferts</h2>
+          <h2 className="text-2xl font-bold text-brand-dark tracking-tight">Historique des Navettes</h2>
           <p className="text-sm text-slate-500 mt-1">Traçabilité des mouvements inter-boutiques</p>
         </div>
 

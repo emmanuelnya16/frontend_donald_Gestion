@@ -136,7 +136,7 @@ export default function LandingPage({ onGoToLogin }: LandingPageProps) {
                 color: "bg-blue-500"
               },
               { 
-                title: "Transferts Fluides", 
+                title: "Navettes Fluides", 
                 desc: "Déplacez vos produits entre boutiques en un clic avec traçabilité complète.", 
                 icon: ArrowLeftRight,
                 color: "bg-indigo-500"

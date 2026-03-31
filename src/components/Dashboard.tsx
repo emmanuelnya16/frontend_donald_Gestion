@@ -66,7 +66,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
     { id: 'sales', label: 'Ventes', icon: ShoppingCart, roles: ['ROLE_ADMIN', 'ROLE_BOUTIQUE'] },
     { id: 'stock', label: 'Stock', icon: Package, roles: ['ROLE_ADMIN', 'ROLE_BOUTIQUE'] },
     { id: 'invoices', label: 'Factures', icon: FileText, roles: ['ROLE_ADMIN', 'ROLE_BOUTIQUE'] },
-    { id: 'transfers', label: 'Transferts', icon: ArrowLeftRight, roles: ['ROLE_ADMIN', 'ROLE_BOUTIQUE'] },
+    { id: 'transfers', label: 'Navettes', icon: ArrowLeftRight, roles: ['ROLE_ADMIN', 'ROLE_BOUTIQUE'] },
     { id: 'reports', label: 'Rapports', icon: FileText, roles: ['ROLE_ADMIN', 'ROLE_BOUTIQUE'] },
     { id: 'corrections', label: 'Corrections', icon: History, roles: ['ROLE_ADMIN'] },
   ];
