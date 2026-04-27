@@ -41,7 +41,7 @@ type ReportTab = 'sales' | 'comparison';
 export default function ReportsView({ user }: ReportsViewProps) {
   const [activeTab, setActiveTab] = useState<ReportTab>('sales');
   const [selectedBoutique, setSelectedBoutique] = useState<string>(
-    user.role === 'ROLE_ADMIN' ? '' : (user.boutiqueId || '')
+    user.role === 'ROLE_ADMIN' ? '' : (user.boutique?.id || user.boutiqueId || '')
   );
   const [period, setPeriod] = useState<'all' | 'day' | 'week' | 'month'>('all');
   const [boutiques, setBoutiques] = useState<Boutique[]>([]);
@@ -65,6 +65,12 @@ export default function ReportsView({ user }: ReportsViewProps) {
         setBoutiques(bts);
         if (isAdmin && !selectedBoutique && bts.length > 0) {
           setSelectedBoutique(bts[0].id);
+        }
+        // For boutique users: ensure selectedBoutique is set
+        if (!isAdmin && !selectedBoutique && bts.length > 0) {
+          const boutiqueId = user.boutique?.id || user.boutiqueId;
+          const match = bts.find(b => b.id === boutiqueId);
+          setSelectedBoutique(match?.id || bts[0].id);
         }
       } catch (err) {
         console.error('Error loading boutiques:', err);

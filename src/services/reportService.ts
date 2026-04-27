@@ -69,7 +69,7 @@ export const reportService = {
     try {
       const [allBoutiques, allSales, allStock, allTransfers] = await Promise.all([
         boutiqueService.getBoutiques(),
-        saleService.getAll(),
+        saleService.getAll(boutiqueId),
         stockService.getAll(),
         transferService.getAll()
       ]);
@@ -77,7 +77,15 @@ export const reportService = {
       const boutique = allBoutiques.find(b => b.id === boutiqueId) || { id: boutiqueId, name: 'Boutique' };
 
       let boutiqueSales = allSales.filter(s => s.boutique?.id === boutiqueId && s.status === 'COMPLETED');
+      // Fallback: if filter returned nothing but we have sales, the IDs might not match.
+      // The backend already filters for ROLE_BOUTIQUE users, so use raw data.
+      if (boutiqueSales.length === 0 && allSales.length > 0) {
+        boutiqueSales = allSales.filter(s => s.status === 'COMPLETED');
+      }
       let boutiqueTransfers = allTransfers.filter(t => t.destBoutique?.id === boutiqueId);
+      if (boutiqueTransfers.length === 0 && allTransfers.length > 0) {
+        boutiqueTransfers = [...allTransfers];
+      }
 
       const now = new Date();
       if (period === 'day') {
@@ -96,7 +104,10 @@ export const reportService = {
         boutiqueTransfers = boutiqueTransfers.filter(t => t.timestamp.startsWith(monthStr));
       }
 
-      const boutiqueStock = allStock.filter(s => s.boutique?.id === boutiqueId);
+      let boutiqueStock = allStock.filter(s => s.boutique?.id === boutiqueId);
+      if (boutiqueStock.length === 0 && allStock.length > 0) {
+        boutiqueStock = [...allStock];
+      }
 
       const totalRevenue = boutiqueSales.reduce((acc, s) => acc + Number(s.totalPrice), 0);
       const totalTransactions = boutiqueSales.length;

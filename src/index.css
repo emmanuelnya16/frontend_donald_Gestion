@@ -64,4 +64,61 @@
   .input-field {
     @apply w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-transparent outline-none transition-all duration-200;
   }
+
+  /* Utility to hide elements during print */
+  .print-hide {
+    /* visible on screen */
+  }
+}
+
+/* ============================================================
+   🖨️  THERMAL TICKET PRINT STYLES — Xprinter 80mm
+   ============================================================ */
+@media print {
+
+  /* 1. Reset page to ticket size — no margins, auto height */
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+
+  /* 2. Hide absolutely everything on the page */
+  body * {
+    visibility: hidden !important;
+    background: white !important;
+  }
+
+  /* 3. Hide the overlay / modal chrome */
+  .print-hide {
+    display: none !important;
+  }
+
+  /* 4. Show ONLY the ticket content */
+  #invoice-content,
+  #invoice-content * {
+    visibility: visible !important;
+  }
+
+  /* 5. Position ticket at top-left, exact width */
+  #invoice-content {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 80mm !important;
+    max-width: 80mm !important;
+    margin: 0 !important;
+    padding: 4mm !important;
+    font-family: "Courier New", Courier, monospace !important;
+    font-size: 11px !important;
+    color: #000 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+  }
+
+  /* 6. Remove any overlay background / blur */
+  #invoice-modal-overlay {
+    display: none !important;
+  }
 }

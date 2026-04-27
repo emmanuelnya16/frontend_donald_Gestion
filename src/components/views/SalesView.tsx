@@ -63,15 +63,23 @@ export default function SalesView({ user }: SalesViewProps) {
   const fetchData = async () => {
     try {
       setLoading(true);
+      
+      console.log('[SalesView] Fetching data for user:', { role: user.role, boutiqueId: getBoutiqueId(user) });
+      
+      // On passe explicitement le boutiqueId pour la boutique (vide pour admin afin de tout récupérer)
       const [boutiquesData, salesData] = await Promise.all([
         boutiqueService.getBoutiques(),
-        saleService.getAll()
+        saleService.getAll(user.role === 'ROLE_BOUTIQUE' ? getBoutiqueId(user) : undefined)
       ]);
+      
+      console.log('[SalesView] Sales received:', salesData.length, '| Boutiques:', boutiquesData.length);
+      
       setBoutiques(boutiquesData);
       setSales(salesData);
       setError(null);
-    } catch (err) {
-      console.error('Error fetching sales data:', err);
+    } catch (err: any) {
+      console.error('[SalesView] Error fetching sales data:', err);
+      console.error('[SalesView] Error details:', err?.response?.status, err?.response?.data);
       setError('Erreur lors du chargement des données de vente.');
     } finally {
       setLoading(false);

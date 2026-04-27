@@ -3,14 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   FileText, 
   Search, 
   Calendar, 
   Download, 
   Eye,
-  Filter,
+  Printer,
   X,
   RefreshCw
 } from 'lucide-react';
@@ -20,6 +20,8 @@ import { saleService } from '../../services/saleService';
 import { productService } from '../../services/productService';
 import { boutiqueService } from '../../services/boutiqueService';
 import InvoiceModal from '../InvoiceModal';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface InvoicesViewProps {
   user: User;
@@ -34,19 +36,24 @@ export default function InvoicesView({ user }: InvoicesViewProps) {
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [showInvoice, setShowInvoice] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [downloadingSaleId, setDownloadingSaleId] = useState<string | null>(null);
+
+  // Hidden div for PDF generation
+  const hiddenInvoiceRef = useRef<HTMLDivElement>(null);
 
   const loadData = async () => {
     setLoading(true);
     try {
+      const boutiqueId = user.boutique?.id || user.boutiqueId || '';
       const [allSales, allProducts, allBoutiques] = await Promise.all([
-        saleService.getAll(),
+        saleService.getAll(user.role === 'ROLE_BOUTIQUE' ? boutiqueId : undefined),
         productService.getAll(),
         boutiqueService.getBoutiques()
       ]);
 
-      const boutiqueSales = user.role === 'ROLE_ADMIN' 
-        ? allSales 
-        : allSales.filter(s => s.boutique?.id === user.boutiqueId);
+      // For ROLE_BOUTIQUE, the backend already returns only this boutique's sales.
+      // No need to re-filter on the frontend (avoids ID mismatch issues).
+      const boutiqueSales = allSales;
       
       setSales(boutiqueSales.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
       setProducts(allProducts);
@@ -74,12 +81,82 @@ export default function InvoicesView({ user }: InvoicesViewProps) {
     setShowInvoice(true);
   };
 
+  // Open the modal — user clicks "Imprimer" inside to trigger the popup-window print
+  const handlePrintInvoice = (sale: Sale) => {
+    setSelectedSale(sale);
+    setShowInvoice(true);
+  };
+
+  // Download a specific invoice as PDF directly
+  const handleDownloadPDF = async (sale: Sale) => {
+    setDownloadingSaleId(sale.id);
+    
+    // First, show the invoice modal (hidden render)
+    setSelectedSale(sale);
+    setShowInvoice(true);
+    
+    // Wait for modal to render
+    setTimeout(async () => {
+      const invoiceEl = document.getElementById('invoice-content');
+      if (!invoiceEl) {
+        console.error('Invoice content element not found');
+        setDownloadingSaleId(null);
+        return;
+      }
+
+      try {
+        const canvas = await html2canvas(invoiceEl, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          onclone: (clonedDoc) => {
+            const elements = clonedDoc.getElementsByTagName('*');
+            for (let i = 0; i < elements.length; i++) {
+              const el = elements[i] as HTMLElement;
+              const style = clonedDoc.defaultView?.getComputedStyle(el);
+              if (style) {
+                const props = [
+                  { name: 'color', fallback: '#000000' },
+                  { name: 'backgroundColor', fallback: '#ffffff' },
+                  { name: 'borderColor', fallback: '#e2e8f0' },
+                  { name: 'outlineColor', fallback: '#000000' }
+                ];
+                props.forEach(prop => {
+                  const value = el.style.getPropertyValue(prop.name) || style.getPropertyValue(prop.name);
+                  if (value && value.includes('oklch')) {
+                    el.style.setProperty(prop.name, prop.fallback, 'important');
+                  }
+                });
+              }
+            }
+          }
+        });
+
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'px',
+          format: [canvas.width / 2, canvas.height / 2]
+        });
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width / 2, canvas.height / 2);
+        pdf.save(`facture-${sale.invoiceNumber}.pdf`);
+      } catch (error) {
+        console.error('Error generating PDF:', error);
+        alert('Erreur lors du téléchargement du PDF.');
+      } finally {
+        setDownloadingSaleId(null);
+        setShowInvoice(false);
+      }
+    }, 800);
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex flex-col">
           <h2 className="text-2xl font-bold text-brand-dark tracking-tight">Facturation</h2>
-          <p className="text-sm text-slate-500 mt-1">Historique des factures et export PDF</p>
+          <p className="text-sm text-slate-500 mt-1">Historique des factures — visualiser, imprimer et télécharger</p>
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
@@ -180,17 +257,29 @@ export default function InvoicesView({ user }: InvoicesViewProps) {
                       <div className="flex justify-end gap-2">
                         <button 
                           onClick={() => handleViewInvoice(s)}
-                          className="p-2 text-slate-400 hover:text-brand-blue hover:bg-white rounded-lg transition-all"
+                          className="p-2.5 text-slate-400 hover:text-brand-blue hover:bg-blue-50 rounded-xl transition-all"
                           title="Voir la facture"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
                         <button 
-                          onClick={() => handleViewInvoice(s)}
-                          className="p-2 text-slate-400 hover:text-brand-blue hover:bg-white rounded-lg transition-all"
-                          title="Télécharger PDF"
+                          onClick={() => handlePrintInvoice(s)}
+                          className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+                          title="Imprimer la facture"
                         >
-                          <Download className="w-4 h-4" />
+                          <Printer className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleDownloadPDF(s)}
+                          disabled={downloadingSaleId === s.id}
+                          className="p-2.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all disabled:opacity-50"
+                          title="Télécharger en PDF"
+                        >
+                          {downloadingSaleId === s.id ? (
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Download className="w-4 h-4" />
+                          )}
                         </button>
                       </div>
                     </td>

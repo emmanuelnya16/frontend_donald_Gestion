@@ -8,36 +8,14 @@ import { Sale, CreateSaleRequest } from '../types';
 
 export const saleService = {
   getAll: async (boutiqueId?: string, date?: string): Promise<Sale[]> => {
-    const response = await api.get<Sale[]>('/api/sales', {
-      params: { boutiqueId, date }
-    });
-    
-    const sales = response.data;
+    const params: Record<string, string> = {};
+    if (boutiqueId) params.boutiqueId = boutiqueId;
+    if (date) params.date = date;
 
-    // The backend list endpoint may not include items (only itemsCount).
-    // If items are missing, fetch each sale's detail to get the full items.
-    // This will be unnecessary once you change the backend to always include items:
-    //   In SaleController::list(), change:
-    //     $this->format($s)  →  $this->format($s, true)
-    const needsEnrichment = sales.length > 0 && !sales[0].items;
-
-    if (needsEnrichment) {
-      // Fetch details for all sales in parallel (batched)
-      const enriched = await Promise.all(
-        sales.map(async (sale) => {
-          try {
-            const detail = await api.get<Sale>(`/api/sales/${sale.id}`);
-            return detail.data;
-          } catch {
-            // If detail fetch fails, return sale as-is with empty items
-            return { ...sale, items: [] };
-          }
-        })
-      );
-      return enriched;
-    }
-
-    return sales;
+    const response = await api.get<Sale[]>('/api/sales', { params });
+    // The backend now returns items directly in the list response.
+    // No need for N+1 detail fetches.
+    return response.data;
   },
 
   getById: async (id: string): Promise<Sale> => {

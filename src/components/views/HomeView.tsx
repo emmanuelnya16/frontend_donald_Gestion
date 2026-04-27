@@ -13,7 +13,10 @@ import {
   Clock,
   ChevronRight,
   Store,
-  RefreshCw
+  RefreshCw,
+  PackageX,
+  TrendingDown,
+  ShoppingCart
 } from 'lucide-react';
 import { User, Sale, StockItem, Boutique } from '../../types';
 import { saleService } from '../../services/saleService';
@@ -36,6 +39,8 @@ export default function HomeView({ user, onNavigate }: HomeViewProps) {
   const [sales, setSales] = useState<Sale[]>([]);
   const [recentSales, setRecentSales] = useState<Sale[]>([]);
   const [boutiques, setBoutiques] = useState<Boutique[]>([]);
+  const [lowStockItems, setLowStockItems] = useState<StockItem[]>([]);
+  const [outOfStockItems, setOutOfStockItems] = useState<StockItem[]>([]);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [showInvoice, setShowInvoice] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -43,37 +48,48 @@ export default function HomeView({ user, onNavigate }: HomeViewProps) {
   const fetchData = async () => {
     try {
       setLoading(true);
+      const boutiqueId = user.boutique?.id || user.boutiqueId;
+      
+      console.log('[HomeView] Fetching data for user:', { role: user.role, boutiqueId, boutique: user.boutique });
+      
+      // On passe explicitement le boutiqueId
       const [allSales, allStock, allBoutiques] = await Promise.all([
-        saleService.getAll(),
+        saleService.getAll(boutiqueId),
         stockService.getAll(),
         boutiqueService.getBoutiques()
       ]);
       
+      console.log('[HomeView] Sales received:', allSales.length, '| Stock:', allStock.length, '| Boutiques:', allBoutiques.length);
+      
       setBoutiques(allBoutiques);
 
-      const filteredSales = user.role === 'ROLE_ADMIN' 
-        ? allSales 
-        : allSales.filter(s => s.boutique.id === user.boutiqueId);
-      
-      setSales(filteredSales);
+      // For ROLE_BOUTIQUE, the backend already returns only this boutique's data.
+      // For ROLE_ADMIN, we get everything.
+      const finalSales = allSales;
+      const finalStock = allStock;
 
-      const filteredStock = user.role === 'ROLE_ADMIN'
-        ? allStock
-        : allStock.filter(s => s.boutique.id === user.boutiqueId);
+      setSales(finalSales);
+
+      // Separate low stock & out of stock items
+      const lowItems = finalStock.filter(s => s.isLowStock && !s.isOutOfStock);
+      const outItems = finalStock.filter(s => s.isOutOfStock);
+      setLowStockItems(lowItems);
+      setOutOfStockItems(outItems);
 
       const today = new Date().toISOString().split('T')[0];
-      const todaySales = filteredSales.filter(s => s.timestamp.startsWith(today) && s.status === 'COMPLETED');
+      const todaySales = finalSales.filter(s => s.timestamp.startsWith(today) && s.status === 'COMPLETED');
 
       setStats({
         totalSales: todaySales.reduce((acc, s) => acc + Number(s.totalPrice), 0),
         transactionCount: todaySales.length,
-        lowStockCount: filteredStock.filter(s => s.isLowStock).length,
-        transferCount: filteredSales.filter(s => s.timestamp.startsWith(today) && (s.items?.some(i => i.isTransfer) || false)).length,
+        lowStockCount: finalStock.filter(s => s.isLowStock || s.isOutOfStock).length,
+        transferCount: finalSales.filter(s => s.timestamp.startsWith(today) && (s.items?.some(i => i.isTransfer) || false)).length,
       });
 
-      setRecentSales(filteredSales.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 5));
-    } catch (err) {
-      console.error('Error fetching home stats:', err);
+      setRecentSales(finalSales.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 5));
+    } catch (err: any) {
+      console.error('[HomeView] Error fetching home stats:', err);
+      console.error('[HomeView] Error details:', err?.response?.status, err?.response?.data);
     } finally {
       setLoading(false);
     }
@@ -163,7 +179,10 @@ export default function HomeView({ user, onNavigate }: HomeViewProps) {
               <Clock className="w-5 h-5 text-brand-blue" />
               Ventes Récentes
             </h3>
-            <button className="text-sm font-semibold text-brand-blue hover:underline flex items-center gap-1">
+            <button 
+              onClick={() => onNavigate(user.role === 'ROLE_BOUTIQUE' ? 'my-sales' : 'sales')}
+              className="text-sm font-semibold text-brand-blue hover:underline flex items-center gap-1"
+            >
               Voir tout <ChevronRight className="w-4 h-4" />
             </button>
           </div>
@@ -198,7 +217,7 @@ export default function HomeView({ user, onNavigate }: HomeViewProps) {
                         sale.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-600' : 
                         sale.status === 'RETURNED' ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-600'
                       }`}>
-                        {sale.status}
+                        {sale.status === 'COMPLETED' ? 'Terminée' : sale.status === 'RETURNED' ? 'Retournée' : 'Annulée'}
                       </span>
                     </td>
                     <td className="py-4 text-slate-500">
@@ -227,6 +246,14 @@ export default function HomeView({ user, onNavigate }: HomeViewProps) {
               >
                 Nouvelle Vente <ChevronRight className="w-4 h-4" />
               </button>
+              {user.role === 'ROLE_BOUTIQUE' && (
+                <button 
+                  onClick={() => onNavigate('my-sales')}
+                  className="w-full py-3 px-4 bg-white/10 hover:bg-white/20 rounded-xl text-left font-semibold transition-colors flex items-center justify-between"
+                >
+                  Mes Ventes <ChevronRight className="w-4 h-4" />
+                </button>
+              )}
               <button 
                 onClick={() => onNavigate('reports')}
                 className="w-full py-3 px-4 bg-white/10 hover:bg-white/20 rounded-xl text-left font-semibold transition-colors flex items-center justify-between"
@@ -241,30 +268,117 @@ export default function HomeView({ user, onNavigate }: HomeViewProps) {
               </button>
             </div>
           </div>
-
-          <div className="card border-none shadow-md">
-            <h3 className="text-lg font-bold text-brand-dark mb-4 flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-amber-500" />
-              Alertes Stock
-            </h3>
-            <div className="space-y-4">
-              {stats.lowStockCount > 0 ? (
-                <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl">
-                  <p className="text-amber-800 font-bold text-sm">Attention !</p>
-                  <p className="text-amber-700 text-xs mt-1">
-                    {stats.lowStockCount} articles sont en dessous du seuil critique.
-                  </p>
-                </div>
-              ) : (
-                <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl">
-                  <p className="text-emerald-800 font-bold text-sm">Tout est en ordre</p>
-                  <p className="text-emerald-700 text-xs mt-1">Le stock est suffisant pour tous les articles.</p>
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       </div>
+
+      {/* Detailed Stock Alerts Section — for boutique users */}
+      {(outOfStockItems.length > 0 || lowStockItems.length > 0) && (
+        <div className="card border-none shadow-md">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-bold text-brand-dark flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              Alertes de Stock Détaillées
+            </h3>
+            <button 
+              onClick={() => onNavigate('stock')}
+              className="text-sm font-semibold text-brand-blue hover:underline flex items-center gap-1"
+            >
+              Gérer le stock <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Out of Stock */}
+            {outOfStockItems.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+                    <PackageX className="w-4 h-4 text-red-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-red-700">Rupture de Stock</p>
+                    <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest">{outOfStockItems.length} article{outOfStockItems.length > 1 ? 's' : ''}</p>
+                  </div>
+                </div>
+                <div className="space-y-2 max-h-[250px] overflow-y-auto">
+                  {outOfStockItems.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between p-3 bg-red-50 border border-red-100 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                        <div>
+                          <p className="text-sm font-bold text-slate-800">{item.product.name}</p>
+                          <p className="text-[10px] text-slate-500 font-semibold">{item.boutique.name.split(' - ')[0]}</p>
+                        </div>
+                      </div>
+                      <span className="text-xs font-black text-red-700 bg-red-100 px-2 py-0.5 rounded-md">0</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Low Stock */}
+            {lowStockItems.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center">
+                    <TrendingDown className="w-4 h-4 text-amber-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-amber-700">Stock Bas</p>
+                    <p className="text-[10px] text-amber-500 font-bold uppercase tracking-widest">{lowStockItems.length} article{lowStockItems.length > 1 ? 's' : ''}</p>
+                  </div>
+                </div>
+                <div className="space-y-2 max-h-[250px] overflow-y-auto">
+                  {lowStockItems.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between p-3 bg-amber-50 border border-amber-100 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-amber-500" />
+                        <div>
+                          <p className="text-sm font-bold text-slate-800">{item.product.name}</p>
+                          <p className="text-[10px] text-slate-500 font-semibold">{item.boutique.name.split(' - ')[0]}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-16 bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-amber-500 transition-all"
+                            style={{ width: `${Math.min((item.quantity / item.lowStockThreshold) * 100, 100)}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-black text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md">
+                          {item.quantity}/{item.lowStockThreshold}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {outOfStockItems.length === 0 && lowStockItems.length === 0 && (
+            <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl">
+              <p className="text-emerald-800 font-bold text-sm">Tout est en ordre</p>
+              <p className="text-emerald-700 text-xs mt-1">Le stock est suffisant pour tous les articles.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* If no stock alerts at all */}
+      {outOfStockItems.length === 0 && lowStockItems.length === 0 && (
+        <div className="card border-none shadow-md">
+          <h3 className="text-lg font-bold text-brand-dark mb-4 flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-amber-500" />
+            Alertes Stock
+          </h3>
+          <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl">
+            <p className="text-emerald-800 font-bold text-sm">Tout est en ordre</p>
+            <p className="text-emerald-700 text-xs mt-1">Le stock est suffisant pour tous les articles.</p>
+          </div>
+        </div>
+      )}
       
       <InvoiceModal 
         sale={selectedSale} 
