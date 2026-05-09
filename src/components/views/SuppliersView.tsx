@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Truck, Plus, Edit2, Power, Search, XCircle, RefreshCw, ChevronLeft, Package, TrendingUp, TrendingDown, BarChart3, Trash2, DollarSign, ShoppingBag, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Supplier, SupplierDetail, SupplierProduct, Product, Boutique } from '../../types';
@@ -29,6 +29,7 @@ export default function SuppliersView({ user }: Props) {
   const [addProdLoading, setAddProdLoading] = useState(false);
   const [formData, setFormData] = useState({ name: '', phone: '', email: '', address: '', description: '', boutiqueId: '' });
   const [formLoading, setFormLoading] = useState(false);
+  const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchSuppliers = async () => {
     try {
@@ -47,6 +48,15 @@ export default function SuppliersView({ user }: Props) {
     fetchSuppliers();
     if (isAdmin) boutiqueService.getBoutiques().then(setBoutiques).catch(() => {});
     productService.getAll().then(setProducts).catch(() => {});
+
+    // Auto-refresh toutes les 30 secondes pour afficher les nouveaux fournisseurs automatiquement
+    autoRefreshRef.current = setInterval(() => {
+      fetchSuppliers();
+    }, 30000);
+
+    return () => {
+      if (autoRefreshRef.current) clearInterval(autoRefreshRef.current);
+    };
   }, []);
 
   const openDetail = async (s: Supplier) => {

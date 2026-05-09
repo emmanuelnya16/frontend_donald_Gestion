@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Package, 
   Plus, 
@@ -14,7 +14,8 @@ import {
   Tag,
   BarChart3,
   CheckCircle2,
-  RefreshCw
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
 import { Product, StockItem, Boutique, Supplier } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -31,8 +32,10 @@ export default function CatalogView() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
+  const [formLoading, setFormLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -92,6 +95,15 @@ export default function CatalogView() {
     fetchData();
     // Charger les fournisseurs pour le formulaire de création
     supplierService.getAll().then(setSuppliers).catch(() => {});
+
+    // Auto-refresh toutes les 30 secondes pour garder les données à jour
+    autoRefreshRef.current = setInterval(() => {
+      fetchData();
+    }, 30000);
+
+    return () => {
+      if (autoRefreshRef.current) clearInterval(autoRefreshRef.current);
+    };
   }, []);
 
   const handleOpenModal = (product?: Product) => {
@@ -115,7 +127,7 @@ export default function CatalogView() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      setLoading(true);
+      setFormLoading(true);
       if (editingProduct) {
         await productService.update(editingProduct.id, formData);
         // Associer au fournisseur si sélectionné lors de la modification
@@ -153,7 +165,7 @@ export default function CatalogView() {
       const message = err.response?.data?.message || err.response?.data?.detail || 'Erreur lors de l\'enregistrement du produit.';
       setError(message);
     } finally {
-      setLoading(false);
+      setFormLoading(false);
     }
   };
 
@@ -429,9 +441,14 @@ export default function CatalogView() {
                   </button>
                   <button 
                     type="submit"
-                    className="flex-1 btn-primary py-3"
+                    disabled={formLoading}
+                    className="flex-1 btn-primary py-3 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                   >
-                    Enregistrer
+                    {formLoading ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Enregistrement...</>
+                    ) : (
+                      'Enregistrer'
+                    )}
                   </button>
                 </div>
               </form>

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Package, 
   AlertTriangle, 
@@ -22,7 +22,8 @@ import {
   TrendingUp,
   TrendingDown,
   ArrowLeftRight,
-  RefreshCw
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
 import { User, Product, StockItem, Boutique, StockMovement } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -58,7 +59,11 @@ export default function StockView({ user }: StockViewProps) {
   });
   const [proposalData, setProposalData] = useState({ name: '', category: '', basePrice: 0, description: '' });
   const [loading, setLoading] = useState(true);
+  const [addStockLoading, setAddStockLoading] = useState(false);
+  const [updateQtyLoading, setUpdateQtyLoading] = useState(false);
+  const [proposeLoading, setProposeLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
   
   // Catalog Modal State
   const [catalogSearchQuery, setCatalogSearchQuery] = useState('');
@@ -113,6 +118,16 @@ export default function StockView({ user }: StockViewProps) {
 
   useEffect(() => {
     fetchData();
+
+    // Auto-refresh silencieux toutes les 30 secondes
+    if (autoRefreshRef.current) clearInterval(autoRefreshRef.current);
+    autoRefreshRef.current = setInterval(() => {
+      fetchData();
+    }, 30000);
+
+    return () => {
+      if (autoRefreshRef.current) clearInterval(autoRefreshRef.current);
+    };
   }, [selectedBoutique, activeTab]);
 
   const handleAddToBoutique = async (e: React.FormEvent) => {
@@ -120,7 +135,7 @@ export default function StockView({ user }: StockViewProps) {
     if (!selectedProductForStock) return;
 
     try {
-      setLoading(true);
+      setAddStockLoading(true);
       await stockService.add({
         productId: selectedProductForStock.id,
         quantity: stockFormData.quantity,
@@ -137,7 +152,7 @@ export default function StockView({ user }: StockViewProps) {
       const message = err.response?.data?.message || err.response?.data?.detail || 'Erreur lors de l\'ajout au stock.';
       setError(message);
     } finally {
-      setLoading(false);
+      setAddStockLoading(false);
     }
   };
 
@@ -177,7 +192,7 @@ export default function StockView({ user }: StockViewProps) {
     if (!selectedStockForEdit) return;
 
     try {
-      setLoading(true);
+      setUpdateQtyLoading(true);
       await stockService.updateQuantity(selectedStockForEdit.id, editQuantityData.quantity, editQuantityData.note);
       await fetchData();
       setIsEditQuantityModalOpen(false);
@@ -187,14 +202,14 @@ export default function StockView({ user }: StockViewProps) {
       const message = err.response?.data?.message || err.response?.data?.detail || 'Erreur lors de la mise à jour de la quantité.';
       setError(message);
     } finally {
-      setLoading(false);
+      setUpdateQtyLoading(false);
     }
   };
 
   const handlePropose = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      setLoading(true);
+      setProposeLoading(true);
       await productService.create(proposalData);
       await fetchData();
       setIsProposeModalOpen(false);
@@ -205,7 +220,7 @@ export default function StockView({ user }: StockViewProps) {
       const message = err.response?.data?.message || err.response?.data?.detail || 'Erreur lors de la proposition du produit.';
       setError(message);
     } finally {
-      setLoading(false);
+      setProposeLoading(false);
     }
   };
 
@@ -697,9 +712,14 @@ export default function StockView({ user }: StockViewProps) {
                       </button>
                       <button 
                         type="submit"
-                        className="flex-1 btn-primary py-3"
+                        disabled={addStockLoading}
+                        className="flex-1 btn-primary py-3 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                       >
-                        Ajouter au Stock
+                        {addStockLoading ? (
+                          <><Loader2 className="w-4 h-4 animate-spin" /> Ajout en cours...</>
+                        ) : (
+                          'Ajouter au Stock'
+                        )}
                       </button>
                     </div>
                   </form>
@@ -785,9 +805,14 @@ export default function StockView({ user }: StockViewProps) {
                   </button>
                   <button 
                     type="submit"
-                    className="flex-1 btn-primary py-3"
+                    disabled={updateQtyLoading}
+                    className="flex-1 btn-primary py-3 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                   >
-                    Enregistrer
+                    {updateQtyLoading ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Enregistrement...</>
+                    ) : (
+                      'Enregistrer'
+                    )}
                   </button>
                 </div>
               </form>
@@ -870,9 +895,14 @@ export default function StockView({ user }: StockViewProps) {
                   </button>
                   <button 
                     type="submit"
-                    className="flex-1 btn-primary py-3"
+                    disabled={proposeLoading}
+                    className="flex-1 btn-primary py-3 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                   >
-                    Envoyer
+                    {proposeLoading ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Envoi en cours...</>
+                    ) : (
+                      'Envoyer'
+                    )}
                   </button>
                 </div>
               </form>
