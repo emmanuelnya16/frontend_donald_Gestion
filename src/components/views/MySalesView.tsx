@@ -48,7 +48,8 @@ export default function MySalesView({ user }: MySalesViewProps) {
       console.log('[MySalesView] Fetching sales for user:', { role: user.role, boutiqueId, userBoutique: user.boutique, userBoutiqueId: user.boutiqueId });
       
       // On passe le boutiqueId explicitement pour récupérer les ventes de la boutique
-      const allSales = await saleService.getAll(boutiqueId);
+      const rawSales = await saleService.getAll(boutiqueId);
+      const allSales = Array.isArray(rawSales) ? rawSales : [];
       
       console.log('[MySalesView] Sales received:', allSales.length, 'sales');
       if (allSales.length > 0) {

@@ -9,12 +9,12 @@ import { StockItem, StockMovement } from '../types';
 export const stockService = {
   getAll: async (): Promise<StockItem[]> => {
     const response = await api.get<StockItem[]>('/api/stock');
-    return response.data;
+    return Array.isArray(response.data) ? response.data : [];
   },
 
   getByBoutique: async (boutiqueId: string): Promise<StockItem[]> => {
     const response = await api.get<StockItem[]>(`/api/stock/boutique/${boutiqueId}`);
-    return response.data;
+    return Array.isArray(response.data) ? response.data : [];
   },
 
   add: async (data: { 
@@ -30,6 +30,14 @@ export const stockService = {
 
   adjust: async (id: string, quantity: number, note: string): Promise<any> => {
     const response = await api.patch<any>(`/api/stock/${id}`, {
+      quantity,
+      note
+    });
+    return response.data;
+  },
+
+  updateQuantity: async (id: string, quantity: number, note?: string): Promise<any> => {
+    const response = await api.patch<any>(`/api/stock/${id}/quantity`, {
       quantity,
       note
     });
@@ -54,6 +62,6 @@ export const stockService = {
     const response = await api.get<StockMovement[]>('/api/stock/movements', {
       params: { boutiqueId }
     });
-    return response.data;
+    return Array.isArray(response.data) ? response.data : [];
   }
 };

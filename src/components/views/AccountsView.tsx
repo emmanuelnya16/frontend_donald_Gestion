@@ -44,12 +44,12 @@ export default function AccountsView() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [fetchedUsers, fetchedBoutiques] = await Promise.all([
+      const [rawUsers, rawBoutiques] = await Promise.all([
         userService.getUsers(),
         boutiqueService.getBoutiques()
       ]);
-      setUsers(fetchedUsers);
-      setBoutiques(fetchedBoutiques);
+      setUsers(Array.isArray(rawUsers) ? rawUsers : []);
+      setBoutiques(Array.isArray(rawBoutiques) ? rawBoutiques : []);
     } catch (err) {
       console.error('Error loading accounts data:', err);
       setError('Erreur lors du chargement des données.');

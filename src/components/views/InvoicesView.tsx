@@ -45,11 +45,15 @@ export default function InvoicesView({ user }: InvoicesViewProps) {
     setLoading(true);
     try {
       const boutiqueId = user.boutique?.id || user.boutiqueId || '';
-      const [allSales, allProducts, allBoutiques] = await Promise.all([
+      const [rawSales, rawProducts, rawBoutiques] = await Promise.all([
         saleService.getAll(user.role === 'ROLE_BOUTIQUE' ? boutiqueId : undefined),
         productService.getAll(),
         boutiqueService.getBoutiques()
       ]);
+
+      const allSales = Array.isArray(rawSales) ? rawSales : [];
+      const allProducts = Array.isArray(rawProducts) ? rawProducts : [];
+      const allBoutiques = Array.isArray(rawBoutiques) ? rawBoutiques : [];
 
       // For ROLE_BOUTIQUE, the backend already returns only this boutique's sales.
       // No need to re-filter on the frontend (avoids ID mismatch issues).

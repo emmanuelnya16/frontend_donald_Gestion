@@ -32,6 +32,16 @@ interface SalesViewProps {
   user: User;
 }
 
+interface CartItem {
+  id: string;
+  product: Product;
+  quantity: number;
+  unitPrice: number;
+  sourceBoutiqueId?: string;
+  sourceBoutiqueName?: string;
+  currentSourceStock: number;
+}
+
 export default function SalesView({ user }: SalesViewProps) {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [productStock, setProductStock] = useState<StockItem[]>([]);
@@ -45,6 +55,7 @@ export default function SalesView({ user }: SalesViewProps) {
   const [viewMode, setViewMode] = useState<'STATS' | 'NEW_SALE'>(user.role === 'ROLE_ADMIN' ? 'STATS' : 'NEW_SALE');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [cart, setCart] = useState<CartItem[]>([]);
 
   // Product list state for boutique view
   const [allProducts, setAllProducts] = useState<any[]>([]);
@@ -94,10 +105,12 @@ export default function SalesView({ user }: SalesViewProps) {
         productService.getAll('ACTIVE'),
         stockService.getAll()
       ]);
-      setAllProducts(productsData);
-      setAllStock(stockData);
+      setAllProducts(Array.isArray(productsData) ? productsData : []);
+      setAllStock(Array.isArray(stockData) ? stockData : []);
     } catch (err) {
       console.error('Error fetching products:', err);
+      setAllProducts([]);
+      setAllStock([]);
     } finally {
       setProductsLoading(false);
     }
@@ -122,9 +135,10 @@ export default function SalesView({ user }: SalesViewProps) {
       setSearchLoading(true);
       try {
         const results = await productService.search(searchQuery, currentBoutiqueId);
-        setSearchResults(results);
+        setSearchResults(Array.isArray(results) ? results : []);
       } catch (err) {
         console.error('Error searching products:', err);
+        setSearchResults([]);
       } finally {
         setSearchLoading(false);
       }
@@ -200,7 +214,7 @@ export default function SalesView({ user }: SalesViewProps) {
   const isTransfer = sourceBoutiqueId && currentBoutiqueId && 
     sourceBoutiqueId.toLowerCase().trim() !== currentBoutiqueId.toLowerCase().trim();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleAddToCart = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProduct) return;
     
@@ -224,40 +238,68 @@ export default function SalesView({ user }: SalesViewProps) {
       return;
     }
 
+    const existingCartItem = cart.find(item => 
+      item.product.id === selectedProduct.id && 
+      item.sourceBoutiqueId === (isTransfer ? sourceBoutiqueId : undefined)
+    );
+
+    if (existingCartItem) {
+       const newQuantity = existingCartItem.quantity + quantity;
+       if (newQuantity > currentSourceStock) {
+         setError(`Stock global insuffisant pour ajouter plus de cet article.`);
+         return;
+       }
+       setCart(cart.map(item => item.id === existingCartItem.id ? { ...item, quantity: newQuantity } : item));
+    } else {
+       setCart([...cart, {
+         id: Date.now().toString() + Math.random().toString(),
+         product: selectedProduct,
+         quantity: Math.floor(quantity),
+         unitPrice: parseFloat(unitPrice.toString()),
+         sourceBoutiqueId: isTransfer ? sourceBoutiqueId : undefined,
+         sourceBoutiqueName: isTransfer ? boutiques.find(b => b.id === sourceBoutiqueId)?.name : undefined,
+         currentSourceStock
+       }]);
+    }
+
+    setSelectedProduct(null);
+    setProductStock([]);
+    setQuantity(1);
+    setUnitPrice(0);
+    setShowSaleForm(false);
+    setError(null);
+  };
+
+  const handleRemoveFromCart = (id: string) => {
+    setCart(cart.filter(item => item.id !== id));
+  };
+
+  const handleFinalizeSale = async () => {
+    if (cart.length === 0) return;
+    
     try {
       setLoading(true);
       setError(null);
       
       const saleData = {
         boutiqueId: currentBoutiqueId,
-        items: [{
-          productId: selectedProduct.id,
-          quantity: Math.floor(quantity),
-          unitPrice: parseFloat(unitPrice.toString()),
-          sourceBoutiqueId: isTransfer ? sourceBoutiqueId : undefined
-        }]
+        items: cart.map(item => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          sourceBoutiqueId: item.sourceBoutiqueId
+        }))
       };
-
-      console.log('Sending Sale Data:', JSON.stringify(saleData, null, 2));
 
       const sale = await saleService.create(saleData);
 
       setLastSale(sale);
       setShowInvoice(true);
+      setCart([]);
       await Promise.all([fetchData(), fetchProducts()]);
       
-      // Reset form
-      setSelectedProduct(null);
-      setProductStock([]);
-      setQuantity(1);
-      setUnitPrice(0);
-      setShowSaleForm(false);
     } catch (err: any) {
       console.error('Error creating sale:', err);
-      if (err.response) {
-        console.error('Backend Error Response Status:', err.response.status);
-        console.error('Backend Error Response Data:', JSON.stringify(err.response.data, null, 2));
-      }
       const backendMessage = err.response?.data?.message;
       const detail = err.response?.data?.detail;
       const violations = err.response?.data?.violations;
@@ -274,8 +316,77 @@ export default function SalesView({ user }: SalesViewProps) {
     }
   };
 
+  const renderCart = () => {
+    if (cart.length === 0) return null;
+    
+    const cartTotal = cart.reduce((acc, item) => acc + (item.quantity * item.unitPrice), 0);
+    
+    return (
+      <div className="mb-8 card border-2 border-brand-blue/20 shadow-xl p-6 bg-gradient-to-br from-white to-blue-50/30">
+        <div className="flex items-center gap-3 mb-6">
+          <ShoppingCart className="w-6 h-6 text-brand-blue" />
+          <h3 className="text-xl font-black text-brand-dark uppercase tracking-tight">Panier Actuel</h3>
+          <span className="bg-brand-blue text-white text-xs font-bold px-3 py-1 rounded-full">{cart.length}</span>
+        </div>
+        
+        <div className="space-y-3 mb-6 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+          {cart.map(item => (
+            <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white border border-slate-100 rounded-xl shadow-sm hover:border-brand-blue/30 transition-all gap-4">
+              <div className="flex-1">
+                <p className="font-bold text-brand-dark text-lg">{item.product.name}</p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <span className="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md uppercase font-bold tracking-wider">
+                    {item.quantity} x {item.unitPrice.toLocaleString()} FCFA
+                  </span>
+                  {item.sourceBoutiqueName && (
+                    <span className="text-xs bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-md uppercase font-bold tracking-wider flex items-center gap-1">
+                      <ArrowLeftRight className="w-3 h-3" />
+                      De: {item.sourceBoutiqueName.split(' - ')[0]}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-6">
+                <span className="font-black text-brand-blue text-xl whitespace-nowrap">
+                  {(item.quantity * item.unitPrice).toLocaleString()} FCFA
+                </span>
+                <button 
+                  type="button"
+                  onClick={() => handleRemoveFromCart(item.id)}
+                  className="p-2.5 text-red-400 hover:text-white hover:bg-red-500 rounded-xl transition-colors shadow-sm"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        <div className="flex flex-col sm:flex-row items-center justify-between pt-6 border-t-2 border-slate-100 gap-4">
+          <div>
+            <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-1">Total Panier</p>
+            <p className="text-3xl font-black text-brand-dark">{cartTotal.toLocaleString()} FCFA</p>
+          </div>
+          <button 
+            type="button"
+            onClick={handleFinalizeSale}
+            disabled={loading}
+            className="btn-primary py-4 px-8 text-lg flex items-center gap-3 shadow-lg shadow-brand-blue/20 disabled:opacity-50 w-full sm:w-auto"
+          >
+            {loading ? <RefreshCw className="w-6 h-6 animate-spin" /> : <CheckCircle2 className="w-6 h-6" />}
+            Finaliser la Vente
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   // Determine which products to show: search results or all products
-  const displayProducts = searchResults !== null ? searchResults : allProducts;
+  const displayProducts = Array.isArray(searchResults) 
+    ? searchResults 
+    : Array.isArray(allProducts) 
+      ? allProducts 
+      : [];
 
   if ((loading || productsLoading) && boutiques.length === 0 && allProducts.length === 0) {
     return (
@@ -434,6 +545,8 @@ export default function SalesView({ user }: SalesViewProps) {
             exit={{ opacity: 0, y: -20 }}
             className="space-y-6"
           >
+            {renderCart()}
+
             {/* Search Bar */}
             <div className="card border-none shadow-lg p-6">
               <div className="relative">
@@ -493,7 +606,7 @@ export default function SalesView({ user }: SalesViewProps) {
                       </button>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form onSubmit={handleAddToCart} className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         {/* Left Column: Product Info */}
                         <div className="space-y-6">
@@ -615,12 +728,8 @@ export default function SalesView({ user }: SalesViewProps) {
                               <span className="text-3xl font-black text-brand-dark">{(quantity * unitPrice).toLocaleString()} FCFA</span>
                             </div>
                             <button type="submit" disabled={loading} className="btn-primary w-full py-4 text-lg flex items-center justify-center gap-3 shadow-lg shadow-brand-blue/20 disabled:opacity-50">
-                              {loading ? (
-                                <RefreshCw className="w-6 h-6 animate-spin" />
-                              ) : (
-                                <CheckCircle2 className="w-6 h-6" />
-                              )}
-                              Valider la Vente
+                              <Plus className="w-6 h-6" />
+                              Ajouter au Panier
                             </button>
                           </div>
                         </div>
@@ -768,6 +877,8 @@ export default function SalesView({ user }: SalesViewProps) {
               <p className="text-slate-500 mt-2">Recherchez un article et validez la transaction</p>
             </div>
 
+            {renderCart()}
+
             <div className="card border-none shadow-xl p-8">
               {user.role === 'ROLE_ADMIN' && (
                 <div className="mb-8 p-4 bg-amber-50 border border-amber-100 rounded-xl">
@@ -801,7 +912,7 @@ export default function SalesView({ user }: SalesViewProps) {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
-                    onSubmit={handleSubmit} 
+                    onSubmit={handleAddToCart} 
                     className="space-y-8 pt-8 border-t border-slate-100"
                   >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -925,8 +1036,8 @@ export default function SalesView({ user }: SalesViewProps) {
                             <span className="text-3xl font-black text-brand-dark">{(quantity * unitPrice).toLocaleString()} FCFA</span>
                           </div>
                           <button type="submit" className="btn-primary w-full py-4 text-lg flex items-center justify-center gap-3 shadow-lg shadow-brand-blue/20">
-                            <CheckCircle2 className="w-6 h-6" />
-                            Valider la Vente
+                            <Plus className="w-6 h-6" />
+                            Ajouter au Panier
                           </button>
                         </div>
                       </div>

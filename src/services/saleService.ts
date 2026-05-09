@@ -15,7 +15,7 @@ export const saleService = {
     const response = await api.get<Sale[]>('/api/sales', { params });
     // The backend now returns items directly in the list response.
     // No need for N+1 detail fetches.
-    return response.data;
+    return Array.isArray(response.data) ? response.data : [];
   },
 
   getById: async (id: string): Promise<Sale> => {

@@ -9,7 +9,7 @@ import { Boutique } from '../types';
 export const boutiqueService = {
   getBoutiques: async (): Promise<Boutique[]> => {
     const response = await api.get<Boutique[]>('/api/boutiques');
-    return response.data;
+    return Array.isArray(response.data) ? response.data : [];
   },
 
   getBoutique: async (id: string): Promise<Boutique> => {

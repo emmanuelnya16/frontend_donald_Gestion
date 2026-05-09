@@ -16,11 +16,12 @@ import {
   CheckCircle2,
   RefreshCw
 } from 'lucide-react';
-import { Product, StockItem, Boutique } from '../../types';
+import { Product, StockItem, Boutique, Supplier } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { productService } from '../../services/productService';
 import { stockService } from '../../services/stockService';
 import { boutiqueService } from '../../services/boutiqueService';
+import { supplierService } from '../../services/supplierService';
 
 export default function CatalogView() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -31,13 +32,16 @@ export default function CatalogView() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   
   // Form state
   const [formData, setFormData] = useState({
     name: '',
     category: '',
     basePrice: 0,
-    description: ''
+    purchasePrice: 0,
+    description: '',
+    supplierId: ''
   });
 
   const fetchData = async () => {
@@ -47,21 +51,27 @@ export default function CatalogView() {
       const user = userStr ? JSON.parse(userStr) : null;
       const isAdmin = user?.role === 'ROLE_ADMIN';
 
-      const [productsData, stockData, boutiquesData] = await Promise.all([
+      const [rawProducts, rawStock, rawBoutiques] = await Promise.all([
         productService.getAll(isAdmin ? 'ACTIVE' : 'ACTIVE'), // Default to ACTIVE for now, but Admin can see more
         stockService.getAll(),
         boutiqueService.getBoutiques()
       ]);
 
+      const productsData = Array.isArray(rawProducts) ? rawProducts : [];
+      const stockData = Array.isArray(rawStock) ? rawStock : [];
+      const boutiquesData = Array.isArray(rawBoutiques) ? rawBoutiques : [];
+
       let allProducts = [...productsData];
       if (isAdmin) {
-        const pendingProducts = await productService.getPending();
+        const rawPending = await productService.getPending();
+        const pendingProducts = Array.isArray(rawPending) ? rawPending : [];
         // Avoid duplicates if any
         const existingIds = new Set(allProducts.map(p => p.id));
         allProducts = [...allProducts, ...pendingProducts.filter(p => !existingIds.has(p.id))];
         
         // Also fetch INACTIVE if needed, but for now let's stick to ACTIVE + PENDING
-        const inactiveProducts = await productService.getAll('INACTIVE');
+        const rawInactive = await productService.getAll('INACTIVE');
+        const inactiveProducts = Array.isArray(rawInactive) ? rawInactive : [];
         const existingIds2 = new Set(allProducts.map(p => p.id));
         allProducts = [...allProducts, ...inactiveProducts.filter(p => !existingIds2.has(p.id))];
       }
@@ -80,6 +90,8 @@ export default function CatalogView() {
 
   useEffect(() => {
     fetchData();
+    // Charger les fournisseurs pour le formulaire de création
+    supplierService.getAll().then(setSuppliers).catch(() => {});
   }, []);
 
   const handleOpenModal = (product?: Product) => {
@@ -89,11 +101,13 @@ export default function CatalogView() {
         name: product.name,
         category: product.category || '',
         basePrice: product.basePrice,
-        description: product.description || ''
+        purchasePrice: product.purchasePrice ? Number(product.purchasePrice) : 0,
+        description: product.description || '',
+        supplierId: ''
       });
     } else {
       setEditingProduct(null);
-      setFormData({ name: '', category: '', basePrice: 0, description: '' });
+      setFormData({ name: '', category: '', basePrice: 0, purchasePrice: 0, description: '', supplierId: '' });
     }
     setIsModalOpen(true);
   };
@@ -104,8 +118,33 @@ export default function CatalogView() {
       setLoading(true);
       if (editingProduct) {
         await productService.update(editingProduct.id, formData);
+        // Associer au fournisseur si sélectionné lors de la modification
+        if (formData.supplierId) {
+          try {
+            await supplierService.addProduct(
+              formData.supplierId,
+              editingProduct.id,
+              formData.purchasePrice || undefined
+            );
+          } catch {
+            // 409 = déjà associé — on ignore silencieusement
+          }
+        }
       } else {
-        await productService.create(formData);
+        const created = await productService.create(formData);
+        // Associer au fournisseur si sélectionné
+        if (formData.supplierId && created?.id) {
+          try {
+            await supplierService.addProduct(
+              formData.supplierId,
+              created.id,
+              formData.purchasePrice || undefined
+            );
+          } catch {
+            // L'association a échoué mais le produit est créé — on continue
+            setError('Produit créé mais l\'association au fournisseur a échoué.');
+          }
+        }
       }
       await fetchData();
       setIsModalOpen(false);
@@ -196,7 +235,8 @@ export default function CatalogView() {
             <tr className="bg-slate-50/50 text-left text-xs font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
               <th className="px-8 py-6">Article</th>
               <th className="px-8 py-6">Catégorie</th>
-              <th className="px-8 py-6">Prix Réf.</th>
+              <th className="px-8 py-6">Prix Achat</th>
+              <th className="px-8 py-6">Prix Vente</th>
               <th className="px-8 py-6">Stock Total</th>
               <th className="px-8 py-6">Statut</th>
               <th className="px-8 py-6 text-right">Actions</th>
@@ -221,6 +261,9 @@ export default function CatalogView() {
                     <Tag className="w-4 h-4 text-slate-300" />
                     {p.category}
                   </span>
+                </td>
+                <td className="px-8 py-6">
+                  <p className="font-black text-orange-500">{p.purchasePrice ? Number(p.purchasePrice).toLocaleString() : '—'} {p.purchasePrice ? 'FCFA' : ''}</p>
                 </td>
                 <td className="px-8 py-6">
                   <p className="font-black text-brand-blue">{p.basePrice.toLocaleString()} FCFA</p>
@@ -323,15 +366,29 @@ export default function CatalogView() {
                     onChange={(e) => setFormData({...formData, category: e.target.value})}
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Prix de Référence (FCFA)</label>
-                  <input 
-                    type="number" 
-                    required
-                    className="input-field"
-                    value={formData.basePrice || ''}
-                    onChange={(e) => setFormData({...formData, basePrice: parseInt(e.target.value) || 0})}
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Prix d'Achat (FCFA)</label>
+                    <input 
+                      type="number" 
+                      min="0"
+                      className="input-field"
+                      placeholder="Optionnel"
+                      value={formData.purchasePrice || ''}
+                      onChange={(e) => setFormData({...formData, purchasePrice: parseFloat(e.target.value) || 0})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Prix de Vente (FCFA)</label>
+                    <input 
+                      type="number" 
+                      required
+                      min="0"
+                      className="input-field"
+                      value={formData.basePrice || ''}
+                      onChange={(e) => setFormData({...formData, basePrice: parseInt(e.target.value) || 0})}
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Description</label>
@@ -341,6 +398,26 @@ export default function CatalogView() {
                     onChange={(e) => setFormData({...formData, description: e.target.value})}
                   />
                 </div>
+
+                {/* Fournisseur — création ET modification */}
+                {suppliers.length > 0 && (
+                  <div>
+                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">
+                      {editingProduct ? 'Associer à un Fournisseur' : 'Associer à un Fournisseur'}
+                      <span className="ml-1 normal-case font-medium text-slate-300">(optionnel)</span>
+                    </label>
+                    <select
+                      className="input-field"
+                      value={formData.supplierId}
+                      onChange={(e) => setFormData({...formData, supplierId: e.target.value})}
+                    >
+                      <option value="">Aucun fournisseur</option>
+                      {suppliers.filter(s => s.status === 'ACTIVE').map(s => (
+                        <option key={s.id} value={s.id}>{s.name} — {s.boutique.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 <div className="pt-4 flex gap-4">
                   <button 

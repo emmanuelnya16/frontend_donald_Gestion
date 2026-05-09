@@ -46,7 +46,7 @@ export default function BoutiquesView({ user }: BoutiquesViewProps) {
     setLoading(true);
     try {
       const data = await boutiqueService.getBoutiques();
-      setBoutiques(data);
+      setBoutiques(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error loading boutiques:', err);
       setError('Erreur lors du chargement des boutiques.');

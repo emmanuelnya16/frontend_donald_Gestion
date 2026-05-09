@@ -16,7 +16,8 @@ import {
   X,
   User as UserIcon,
   Store,
-  ClipboardList
+  ClipboardList,
+  Truck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { User, Boutique } from '../types';
@@ -33,6 +34,7 @@ import BoutiquesView from './views/BoutiquesView';
 import AccountsView from './views/AccountsView';
 import CatalogView from './views/CatalogView';
 import InvoicesView from './views/InvoicesView';
+import SuppliersView from './views/SuppliersView';
 
 interface DashboardProps {
   user: User;
@@ -65,6 +67,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
     { id: 'boutiques', label: 'Boutiques', icon: Store, roles: ['ROLE_ADMIN'] },
     { id: 'accounts', label: 'Comptes', icon: UserIcon, roles: ['ROLE_ADMIN'] },
     { id: 'catalog', label: 'Catalogue', icon: Package, roles: ['ROLE_ADMIN'] },
+    { id: 'suppliers', label: 'Fournisseurs', icon: Truck, roles: ['ROLE_ADMIN', 'ROLE_BOUTIQUE'] },
     { id: 'sales', label: 'Ventes', icon: ShoppingCart, roles: ['ROLE_ADMIN', 'ROLE_BOUTIQUE'] },
     { id: 'my-sales', label: 'Mes Ventes', icon: ClipboardList, roles: ['ROLE_BOUTIQUE'] },
     { id: 'stock', label: 'Stock', icon: Package, roles: ['ROLE_ADMIN', 'ROLE_BOUTIQUE'] },
@@ -82,6 +85,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
       case 'boutiques': return <BoutiquesView user={user} />;
       case 'accounts': return <AccountsView />;
       case 'catalog': return <CatalogView />;
+      case 'suppliers': return <SuppliersView user={user} />;
       case 'sales': return <SalesView user={user} />;
       case 'my-sales': return <MySalesView user={user} />;
       case 'stock': return <StockView user={user} />;

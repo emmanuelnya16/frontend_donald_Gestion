@@ -9,7 +9,7 @@ import { User } from '../types';
 export const userService = {
   getUsers: async (): Promise<User[]> => {
     const response = await api.get<User[]>('/api/users');
-    return response.data;
+    return Array.isArray(response.data) ? response.data : [];
   },
 
   getUser: async (id: string): Promise<User> => {

@@ -32,6 +32,7 @@ export interface Product {
   name: string;
   category: string | null;
   basePrice: number;
+  purchasePrice?: number | null;
   description: string | null;
   status: 'ACTIVE' | 'INACTIVE' | 'PENDING';
   createdAt?: string;
@@ -147,4 +148,45 @@ export interface DashboardStats {
   transactionCount: number;
   lowStockCount: number;
   transferCount: number;
+}
+
+export interface Supplier {
+  id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  description: string | null;
+  status: 'ACTIVE' | 'INACTIVE';
+  boutique: {
+    id: string;
+    name: string;
+  };
+  createdAt: string;
+}
+
+export interface SupplierProduct {
+  id: string;
+  name: string;
+  category: string | null;
+  salePrice: number;
+  purchasePrice: number;
+  stockQuantity: number;
+  qtySold: number;
+  revenue: number;
+  cost: number;
+  margin: number;
+}
+
+export interface SupplierStats {
+  totalProducts: number;
+  totalStock: number;
+  totalRevenue: number;
+  totalCost: number;
+  totalMargin: number;
+}
+
+export interface SupplierDetail extends Supplier {
+  products: SupplierProduct[];
+  stats: SupplierStats;
 }

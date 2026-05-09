@@ -61,7 +61,8 @@ export default function ReportsView({ user }: ReportsViewProps) {
   useEffect(() => {
     const loadBoutiques = async () => {
       try {
-        const bts = await boutiqueService.getBoutiques();
+        const rawBts = await boutiqueService.getBoutiques();
+        const bts = Array.isArray(rawBts) ? rawBts : [];
         setBoutiques(bts);
         if (isAdmin && !selectedBoutique && bts.length > 0) {
           setSelectedBoutique(bts[0].id);

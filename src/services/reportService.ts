@@ -67,12 +67,17 @@ export const reportService = {
    */
   async getBoutiqueSales(boutiqueId: string, period: 'all' | 'day' | 'week' | 'month' = 'all'): Promise<BoutiqueSalesReport> {
     try {
-      const [allBoutiques, allSales, allStock, allTransfers] = await Promise.all([
+      const [rawBoutiques, rawSales, rawStock, rawTransfers] = await Promise.all([
         boutiqueService.getBoutiques(),
         saleService.getAll(boutiqueId),
         stockService.getAll(),
         transferService.getAll()
       ]);
+
+      const allBoutiques = Array.isArray(rawBoutiques) ? rawBoutiques : [];
+      const allSales = Array.isArray(rawSales) ? rawSales : [];
+      const allStock = Array.isArray(rawStock) ? rawStock : [];
+      const allTransfers = Array.isArray(rawTransfers) ? rawTransfers : [];
 
       const boutique = allBoutiques.find(b => b.id === boutiqueId) || { id: boutiqueId, name: 'Boutique' };
 
@@ -179,12 +184,17 @@ export const reportService = {
    */
   async getComparison(): Promise<ComparisonReport> {
     try {
-      const [boutiques, allSales, allStock, allTransfers] = await Promise.all([
+      const [rawBoutiques, rawSales, rawStock, rawTransfers] = await Promise.all([
         boutiqueService.getBoutiques(),
         saleService.getAll(),
         stockService.getAll(),
         transferService.getAll()
       ]);
+
+      const boutiques = Array.isArray(rawBoutiques) ? rawBoutiques : [];
+      const allSales = Array.isArray(rawSales) ? rawSales : [];
+      const allStock = Array.isArray(rawStock) ? rawStock : [];
+      const allTransfers = Array.isArray(rawTransfers) ? rawTransfers : [];
 
       const compBoutiques: ComparisonBoutique[] = boutiques.map(boutique => {
         const bSales = allSales.filter(s => s.boutique?.id === boutique.id && s.status === 'COMPLETED');

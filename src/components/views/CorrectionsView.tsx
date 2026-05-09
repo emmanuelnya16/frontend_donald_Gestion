@@ -42,14 +42,15 @@ export default function CorrectionsView({ user }: CorrectionsViewProps) {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [allSales, allProducts, allBoutiques] = await Promise.all([
+      const [rawSales, rawProducts, rawBoutiques] = await Promise.all([
         saleService.getAll(),
         productService.getAll(),
         boutiqueService.getBoutiques()
       ]);
+      const allSales = Array.isArray(rawSales) ? rawSales : [];
       setSales(allSales.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
-      setProducts(allProducts);
-      setBoutiques(allBoutiques);
+      setProducts(Array.isArray(rawProducts) ? rawProducts : []);
+      setBoutiques(Array.isArray(rawBoutiques) ? rawBoutiques : []);
     } catch (err) {
       console.error('Error loading corrections data:', err);
     } finally {
@@ -82,8 +83,8 @@ export default function CorrectionsView({ user }: CorrectionsViewProps) {
   };
 
   const filteredSales = sales.filter(s => 
-    s.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.items.some(item => item.product.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    (s.invoiceNumber || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (s.items || []).some(item => item.product?.name?.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   return (

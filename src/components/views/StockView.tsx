@@ -45,6 +45,9 @@ export default function StockView({ user }: StockViewProps) {
   const [activeTab, setActiveTab] = useState<'STOCK' | 'MOVEMENTS'>('STOCK');
   const [selectedBoutique, setSelectedBoutique] = useState(user.role === 'ROLE_ADMIN' ? 'ALL' : user.boutiqueId);
   const [editingStock, setEditingStock] = useState<{ productId: string, boutiqueId: string, quantity: number, localPrice?: number } | null>(null);
+  const [isEditQuantityModalOpen, setIsEditQuantityModalOpen] = useState(false);
+  const [selectedStockForEdit, setSelectedStockForEdit] = useState<StockItem | null>(null);
+  const [editQuantityData, setEditQuantityData] = useState({ quantity: 0, note: '' });
   const [isProposeModalOpen, setIsProposeModalOpen] = useState(false);
   const [isCatalogModalOpen, setIsCatalogModalOpen] = useState(false);
   const [selectedProductForStock, setSelectedProductForStock] = useState<Product | null>(null);
@@ -169,6 +172,25 @@ export default function StockView({ user }: StockViewProps) {
     }
   };
 
+  const handleUpdateQuantity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedStockForEdit) return;
+
+    try {
+      setLoading(true);
+      await stockService.updateQuantity(selectedStockForEdit.id, editQuantityData.quantity, editQuantityData.note);
+      await fetchData();
+      setIsEditQuantityModalOpen(false);
+      setSelectedStockForEdit(null);
+    } catch (err: any) {
+      console.error('Error updating stock quantity:', err);
+      const message = err.response?.data?.message || err.response?.data?.detail || 'Erreur lors de la mise à jour de la quantité.';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handlePropose = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -187,11 +209,13 @@ export default function StockView({ user }: StockViewProps) {
     }
   };
 
-  const filteredStock = stock.filter(s => {
-    const matchesSearch = s.product.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         (s.product.category?.toLowerCase() || '').includes(searchQuery.toLowerCase());
+  const safeStock = Array.isArray(stock) ? stock : [];
+  
+  const filteredStock = safeStock.filter(s => {
+    const matchesSearch = s.product?.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         (s.product?.category?.toLowerCase() || '').includes(searchQuery.toLowerCase());
     
-    const matchesBoutique = selectedBoutique === 'ALL' || s.boutique.id === selectedBoutique;
+    const matchesBoutique = selectedBoutique === 'ALL' || s.boutique?.id === selectedBoutique;
     
     const matchesFilter = filter === 'ALL' || 
                          (filter === 'LOW' && s.isLowStock && !s.isOutOfStock) ||
@@ -406,17 +430,29 @@ export default function StockView({ user }: StockViewProps) {
                       </div>
                     </td>
                     <td className="px-8 py-6 text-right">
-                      {user.role === 'ROLE_ADMIN' && (
-                        <button 
-                          onClick={() => setEditingStock({ productId: s.product.id, boutiqueId: s.boutique.id, quantity: s.quantity, localPrice: s.localPrice || undefined })}
-                          className="p-2 text-slate-400 hover:text-brand-blue hover:bg-white rounded-lg transition-all"
+                      <div className="flex justify-end items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedStockForEdit(s);
+                            setEditQuantityData({ quantity: s.quantity, note: '' });
+                            setIsEditQuantityModalOpen(true);
+                          }}
+                          className="px-3 py-1.5 bg-brand-blue text-white text-xs font-bold rounded-lg hover:bg-brand-dark transition-colors shadow-sm"
                         >
-                          <Edit2 className="w-4 h-4" />
+                          Modifier
                         </button>
-                      )}
-                      <button className="p-2 text-slate-400 hover:text-brand-blue hover:bg-white rounded-lg transition-all ml-2">
-                        <ChevronRight className="w-5 h-5" />
-                      </button>
+                        {user.role === 'ROLE_ADMIN' && (
+                          <button 
+                            onClick={() => setEditingStock({ productId: s.product.id, boutiqueId: s.boutique.id, quantity: s.quantity, localPrice: s.localPrice || undefined })}
+                            className="p-2 text-slate-400 hover:text-brand-blue hover:bg-white rounded-lg transition-all"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button className="p-2 text-slate-400 hover:text-brand-blue hover:bg-white rounded-lg transition-all">
+                          <ChevronRight className="w-5 h-5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -669,6 +705,92 @@ export default function StockView({ user }: StockViewProps) {
                   </form>
                 )}
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Quantity Modal */}
+      <AnimatePresence>
+        {isEditQuantityModalOpen && selectedStockForEdit && (
+          <motion.div 
+            key="edit-quantity-modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-dark/60 backdrop-blur-sm"
+          >
+            <motion.div 
+              key="edit-quantity-modal-content"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
+            >
+              <div className="p-6 bg-brand-blue text-white flex items-center justify-between">
+                <h3 className="text-xl font-bold">Modifier la quantité</h3>
+                <button 
+                  onClick={() => {
+                    setIsEditQuantityModalOpen(false);
+                    setSelectedStockForEdit(null);
+                  }} 
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+
+              <form onSubmit={handleUpdateQuantity} className="p-6 space-y-4">
+                <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 mb-6">
+                  <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-brand-blue shadow-sm">
+                    <Package className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-brand-dark">{selectedStockForEdit.product.name}</h4>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Stock actuel: {selectedStockForEdit.quantity}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Nouvelle quantité totale</label>
+                  <input 
+                    type="number" 
+                    required
+                    min="0"
+                    className="input-field"
+                    value={editQuantityData.quantity.toString()}
+                    onChange={(e) => setEditQuantityData({...editQuantityData, quantity: e.target.value === '' ? 0 : parseInt(e.target.value) || 0})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Note (optionnelle)</label>
+                  <textarea 
+                    className="input-field min-h-[80px]"
+                    placeholder="Ex: Réapprovisionnement, Inventaire, etc."
+                    value={editQuantityData.note}
+                    onChange={(e) => setEditQuantityData({...editQuantityData, note: e.target.value})}
+                  />
+                </div>
+
+                <div className="pt-4 flex gap-4">
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setIsEditQuantityModalOpen(false);
+                      setSelectedStockForEdit(null);
+                    }}
+                    className="flex-1 py-3 px-4 border-2 border-slate-100 rounded-xl font-bold text-slate-400 hover:bg-slate-50 transition-all"
+                  >
+                    Annuler
+                  </button>
+                  <button 
+                    type="submit"
+                    className="flex-1 btn-primary py-3"
+                  >
+                    Enregistrer
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </motion.div>
         )}

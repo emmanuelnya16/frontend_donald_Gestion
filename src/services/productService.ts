@@ -11,19 +11,19 @@ export const productService = {
     const response = await api.get<Product[]>('/api/products', {
       params: { status }
     });
-    return response.data;
+    return Array.isArray(response.data) ? response.data : [];
   },
 
   getPending: async (): Promise<Product[]> => {
     const response = await api.get<Product[]>('/api/products/pending');
-    return response.data;
+    return Array.isArray(response.data) ? response.data : [];
   },
 
   search: async (query: string, boutiqueId?: string): Promise<any[]> => {
     const response = await api.get<any[]>('/api/products/search', {
       params: { q: query, boutiqueId }
     });
-    return response.data;
+    return Array.isArray(response.data) ? response.data : [];
   },
 
   getById: async (id: string): Promise<any> => {

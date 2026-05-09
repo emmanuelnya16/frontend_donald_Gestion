@@ -53,11 +53,15 @@ export default function HomeView({ user, onNavigate }: HomeViewProps) {
       console.log('[HomeView] Fetching data for user:', { role: user.role, boutiqueId, boutique: user.boutique });
       
       // On passe explicitement le boutiqueId
-      const [allSales, allStock, allBoutiques] = await Promise.all([
+      const [rawSales, rawStock, rawBoutiques] = await Promise.all([
         saleService.getAll(boutiqueId),
         stockService.getAll(),
         boutiqueService.getBoutiques()
       ]);
+      
+      const allSales = Array.isArray(rawSales) ? rawSales : [];
+      const allStock = Array.isArray(rawStock) ? rawStock : [];
+      const allBoutiques = Array.isArray(rawBoutiques) ? rawBoutiques : [];
       
       console.log('[HomeView] Sales received:', allSales.length, '| Stock:', allStock.length, '| Boutiques:', allBoutiques.length);
       

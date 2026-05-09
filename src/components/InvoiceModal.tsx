@@ -9,6 +9,7 @@ import { Printer, Download, X, RefreshCw } from 'lucide-react';
 import { Sale } from '../types';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import logoImg from '../assets/logo.jpg';
 
 interface InvoiceModalProps {
   sale: Sale | null;
@@ -53,6 +54,7 @@ export default function InvoiceModal({ sale, isOpen, onClose }: InvoiceModalProp
       }
       div { font-family: inherit; }
       span { font-family: inherit; }
+      img { display: block; margin: 0 auto; }
     `;
 
     printWindow.document.write(`
@@ -130,8 +132,8 @@ export default function InvoiceModal({ sale, isOpen, onClose }: InvoiceModalProp
     }
   };
 
-  // Build the dashed separator
-  const separator = '--------------------------------';
+  // Star separator
+  const starSeparator = '********************************';
 
   return (
     <AnimatePresence>
@@ -179,58 +181,82 @@ export default function InvoiceModal({ sale, isOpen, onClose }: InvoiceModalProp
                   backgroundColor: '#fff',
                 }}
               >
-                {/* ===== Store Header ===== */}
+                {/* ===== 1. HEADER ENTREPRISE ===== */}
                 <div style={{ textAlign: 'center', marginBottom: '4px' }}>
-                  <div style={{ fontSize: '16px', fontWeight: 'bold', letterSpacing: '1px' }}>
-                    DONALD GROS
+                  {/* Logo */}
+                  <img
+                    src={logoImg}
+                    alt="Logo"
+                    style={{
+                      width: '60px',
+                      height: 'auto',
+                      display: 'block',
+                      margin: '0 auto 4px auto',
+                    }}
+                  />
+                  {/* Nom entreprise */}
+                  <div style={{ fontSize: '14px', fontWeight: 'bold', letterSpacing: '1px' }}>
+                    DONALD GROS SARL
                   </div>
-                  <div style={{ fontSize: '10px', marginTop: '2px' }}>
-                    Système de Gestion
+                  {/* Description activité */}
+                  <div style={{ fontSize: '9px', marginTop: '2px' }}>
+                    VENTES DES VETEMENTS HOMME FEMME
+                  </div>
+                  <div style={{ fontSize: '9px' }}>
+                    ET ACCESSOIRE
+                  </div>
+                  {/* Téléphone */}
+                  <div style={{ fontSize: '9px', marginTop: '2px' }}>
+                    Tel: 680449195 / 678556373
+                  </div>
+                  {/* RCCM & NIU */}
+                  <div style={{ fontSize: '9px' }}>
+                    RCCM: RC/YAO/2023/B/22
+                  </div>
+                  <div style={{ fontSize: '9px' }}>
+                    NIU: M11 316290003M
                   </div>
                 </div>
 
+                {/* ===== 2. Séparateur étoile ===== */}
                 <div style={{ textAlign: 'center', fontSize: '10px', marginBottom: '2px' }}>
-                  {separator}
+                  {starSeparator}
                 </div>
 
-                {/* ===== Boutique & Invoice Info ===== */}
+                {/* ===== 3. Informations facture ===== */}
                 <div style={{ marginBottom: '2px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Boutique:</span>
-                    <span style={{ fontWeight: 'bold', maxWidth: '55%', textAlign: 'right' }}>
-                      {(sale.boutique?.name || '').split(' - ')[0]}
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Facture:</span>
-                    <span style={{ fontWeight: 'bold' }}>#{sale.invoiceNumber}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Date:</span>
+                    <span>Date & heure:</span>
                     <span>
                       {new Date(sale.timestamp).toLocaleDateString('fr-FR', {
                         day: '2-digit',
                         month: '2-digit',
                         year: 'numeric',
-                      })}
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Heure:</span>
-                    <span>
+                      })}{' '}
                       {new Date(sale.timestamp).toLocaleTimeString('fr-FR', {
                         hour: '2-digit',
                         minute: '2-digit',
                       })}
                     </span>
                   </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Ticket N°:</span>
+                    <span style={{ fontWeight: 'bold' }}>{sale.invoiceNumber}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Boutique:</span>
+                    <span style={{ fontWeight: 'bold', maxWidth: '55%', textAlign: 'right' }}>
+                      {(sale.boutique?.name || '').split(' - ')[0]}
+                    </span>
+                  </div>
                 </div>
 
+                {/* ===== 4. Séparateur étoile ===== */}
                 <div style={{ textAlign: 'center', fontSize: '10px' }}>
-                  {separator}
+                  {starSeparator}
                 </div>
 
-                {/* ===== Column headers ===== */}
+                {/* ===== 5. En-tête tableau produits ===== */}
                 <div style={{
                   display: 'flex',
                   justifyContent: 'space-between',
@@ -239,21 +265,22 @@ export default function InvoiceModal({ sale, isOpen, onClose }: InvoiceModalProp
                   textTransform: 'uppercase',
                   padding: '2px 0',
                 }}>
-                  <span style={{ flex: 1 }}>Article</span>
-                  <span style={{ width: '30px', textAlign: 'center' }}>Qté</span>
-                  <span style={{ width: '80px', textAlign: 'right' }}>Prix</span>
+                  <span style={{ flex: 1 }}>Designation</span>
+                  <span style={{ width: '30px', textAlign: 'center' }}>Qte</span>
+                  <span style={{ width: '55px', textAlign: 'right' }}>P.U</span>
+                  <span style={{ width: '65px', textAlign: 'right' }}>P.T</span>
                 </div>
 
                 <div style={{ textAlign: 'center', fontSize: '10px' }}>
-                  {separator}
+                  --------------------------------
                 </div>
 
                 {/* ===== Items ===== */}
                 <div style={{ marginBottom: '2px' }}>
-                  {sale.items?.map((item, idx) => {
-                    const itemTotal = item.unitPrice * item.quantity;
+                  {(sale.items || []).map((item, idx) => {
+                    const itemTotal = (item.unitPrice || 0) * (item.quantity || 0);
                     return (
-                      <div key={idx} style={{ marginBottom: '4px' }}>
+                      <div key={idx} style={{ marginBottom: '3px' }}>
                         <div style={{
                           display: 'flex',
                           justifyContent: 'space-between',
@@ -261,26 +288,24 @@ export default function InvoiceModal({ sale, isOpen, onClose }: InvoiceModalProp
                         }}>
                           <span style={{
                             flex: 1,
-                            fontWeight: 'bold',
                             wordBreak: 'break-word',
                             paddingRight: '4px',
+                            fontSize: '10px',
                           }}>
                             {item.product?.name || 'Produit'}
                           </span>
-                          <span style={{ width: '30px', textAlign: 'center' }}>
+                          <span style={{ width: '30px', textAlign: 'center', fontSize: '10px' }}>
                             {item.quantity}
                           </span>
-                          <span style={{ width: '80px', textAlign: 'right' }}>
+                          <span style={{ width: '55px', textAlign: 'right', fontSize: '10px' }}>
+                            {(item.unitPrice || 0).toLocaleString()}
+                          </span>
+                          <span style={{ width: '65px', textAlign: 'right', fontSize: '10px', fontWeight: 'bold' }}>
                             {itemTotal.toLocaleString()}
                           </span>
                         </div>
-                        {item.quantity > 1 && (
-                          <div style={{ fontSize: '9px', color: '#666', paddingLeft: '4px' }}>
-                            {item.quantity} x {item.unitPrice.toLocaleString()} FCFA
-                          </div>
-                        )}
                         {item.isTransfer && item.sourceBoutique && (
-                          <div style={{ fontSize: '9px', color: '#666', paddingLeft: '4px' }}>
+                          <div style={{ fontSize: '8px', paddingLeft: '4px' }}>
                             &gt; De: {item.sourceBoutique.name.split(' - ')[0]}
                           </div>
                         )}
@@ -289,11 +314,12 @@ export default function InvoiceModal({ sale, isOpen, onClose }: InvoiceModalProp
                   })}
                 </div>
 
+                {/* ===== 6. Séparateur étoile ===== */}
                 <div style={{ textAlign: 'center', fontSize: '10px' }}>
-                  {separator}
+                  {starSeparator}
                 </div>
 
-                {/* ===== Total ===== */}
+                {/* ===== 7. TOTAL ===== */}
                 <div style={{
                   display: 'flex',
                   justifyContent: 'space-between',
@@ -301,45 +327,30 @@ export default function InvoiceModal({ sale, isOpen, onClose }: InvoiceModalProp
                   fontSize: '14px',
                   padding: '4px 0',
                 }}>
-                  <span>TOTAL</span>
-                  <span>{sale.totalPrice.toLocaleString()} FCFA</span>
+                  <span>Total en FCFA</span>
+                  <span>{(sale.totalPrice || 0).toLocaleString()}</span>
                 </div>
 
+                {/* ===== 8. Séparateur étoile ===== */}
                 <div style={{ textAlign: 'center', fontSize: '10px' }}>
-                  {separator}
+                  {starSeparator}
                 </div>
 
-                {/* ===== Status ===== */}
+                {/* ===== 9. Message de fin ===== */}
                 <div style={{
                   textAlign: 'center',
-                  padding: '4px 0',
-                  fontWeight: 'bold',
-                  fontSize: '11px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '2px',
+                  marginTop: '6px',
+                  marginBottom: '4px',
                 }}>
-                  {sale.status === 'COMPLETED' ? '*** PAYÉE ***' :
-                   sale.status === 'CANCELLED' ? '*** ANNULÉE ***' : '*** RETOURNÉE ***'}
-                </div>
-
-                <div style={{ textAlign: 'center', fontSize: '10px' }}>
-                  {separator}
-                </div>
-
-                {/* ===== Footer ===== */}
-                <div style={{ textAlign: 'center', marginTop: '4px', marginBottom: '8px' }}>
-                  <div style={{ fontSize: '10px', fontWeight: 'bold' }}>
-                    Merci pour votre achat !
+                  <div style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                    CHERS CLIENTS VOTRE SATISFACTION
                   </div>
-                  <div style={{ fontSize: '9px', color: '#666', marginTop: '2px' }}>
-                    Conservez ce ticket comme preuve d'achat
-                  </div>
-                  <div style={{ fontSize: '9px', color: '#999', marginTop: '4px' }}>
-                    Donald Gros Management System
+                  <div style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                    RESTE NOTRE PRIORITE
                   </div>
                 </div>
 
-                {/* Extra space for paper cut */}
+                {/* ===== 10. Espace bas pour coupe papier ===== */}
                 <div style={{ height: '20mm' }}></div>
               </div>
             </div>

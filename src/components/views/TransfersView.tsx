@@ -36,18 +36,22 @@ export default function TransfersView({ user }: TransfersViewProps) {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [allTransfers, allProducts, allBoutiques] = await Promise.all([
+      const [rawTransfers, rawProducts, rawBoutiques] = await Promise.all([
         transferService.getAll(),
         productService.getAll(),
         boutiqueService.getBoutiques()
       ]);
+
+      const allTransfers = Array.isArray(rawTransfers) ? rawTransfers : [];
+      const allProducts = Array.isArray(rawProducts) ? rawProducts : [];
+      const allBoutiques = Array.isArray(rawBoutiques) ? rawBoutiques : [];
 
       setProducts(allProducts);
       setBoutiques(allBoutiques);
 
       const filtered = user.role === 'ROLE_ADMIN'
         ? allTransfers
-        : allTransfers.filter(t => t.sourceBoutique.id === user.boutiqueId || t.destBoutique.id === user.boutiqueId);
+        : allTransfers.filter(t => t.sourceBoutique?.id === user.boutiqueId || t.destBoutique?.id === user.boutiqueId);
 
       setTransfers(filtered.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
     } catch (err) {
