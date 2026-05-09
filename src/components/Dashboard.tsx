@@ -17,7 +17,8 @@ import {
   User as UserIcon,
   Store,
   ClipboardList,
-  Truck
+  Truck,
+  Calendar
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { User, Boutique } from '../types';
@@ -182,7 +183,14 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4 sm:gap-6">
+            {/* Date du jour */}
+            <div className="hidden md:flex items-center gap-2 bg-brand-blue/5 border border-brand-blue/15 rounded-xl px-4 py-2">
+              <Calendar className="w-4 h-4 text-brand-blue" />
+              <span className="text-sm font-semibold text-brand-blue capitalize">
+                {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              </span>
+            </div>
             <AlertDropdown user={user} />
             <div className="h-8 w-px bg-slate-200"></div>
             <div className="flex items-center gap-3">
