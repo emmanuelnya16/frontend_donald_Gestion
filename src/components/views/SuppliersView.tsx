@@ -157,6 +157,8 @@ export default function SuppliersView({ user }: Props) {
     const stats = selectedSupplier.stats ?? { totalProducts: 0, totalStock: 0, totalRevenue: 0, totalCost: 0, totalMargin: 0 };
     const products2 = selectedSupplier.products ?? [];
     const marginPct = stats.totalRevenue > 0 ? ((stats.totalMargin / stats.totalRevenue) * 100).toFixed(1) : '0';
+    // Calcul : Valeur totale du stock fournisseur = Σ (prix_achat × quantité_en_stock)
+    const totalStockValue = products2.reduce((acc, p) => acc + (p.purchasePrice * p.stockQuantity), 0);
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
@@ -196,6 +198,20 @@ export default function SuppliersView({ user }: Props) {
               <p className="text-xl font-black text-brand-dark">{c.value}</p>
             </div>
           ))}
+        </div>
+
+        {/* Valeur totale du stock au prix d'achat */}
+        <div className="rounded-2xl p-5 border border-violet-200 bg-gradient-to-r from-violet-50 to-indigo-50 flex items-center gap-5">
+          <div className="w-12 h-12 rounded-2xl bg-violet-600 flex items-center justify-center flex-shrink-0 shadow-md">
+            <DollarSign className="w-6 h-6 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-black text-violet-500 uppercase tracking-widest mb-0.5">Valeur Stock (Prix d'achat)</p>
+            <p className="text-xs text-violet-400 font-medium">
+              Σ (prix achat × quantité en stock) pour les {products2.length} produit{products2.length > 1 ? 's' : ''} lié{products2.length > 1 ? 's' : ''}
+            </p>
+          </div>
+          <p className="text-2xl font-black text-violet-700 flex-shrink-0">{fmt(totalStockValue)} <span className="text-base font-bold">FCFA</span></p>
         </div>
 
         {/* Marge */}

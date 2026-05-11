@@ -3,12 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { User } from './types';
 import { authService } from './services/authService';
-import Login from './components/Login';
-import Dashboard from './components/Dashboard';
-import LandingPage from './components/LandingPage';
+
+// Chargement paresseux — seul le strict minimum est chargé au démarrage
+const LandingPage = lazy(() => import('./components/LandingPage'));
+const Login       = lazy(() => import('./components/Login'));
+const Dashboard   = lazy(() => import('./components/Dashboard'));
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -66,16 +68,22 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-brand-light">
-      {!user ? (
-        showLanding ? (
-          <LandingPage onGoToLogin={() => setShowLanding(false)} />
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-brand-light">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue"></div>
+      </div>
+    }>
+      <div className="min-h-screen bg-brand-light">
+        {!user ? (
+          showLanding ? (
+            <LandingPage onGoToLogin={() => setShowLanding(false)} />
+          ) : (
+            <Login onLogin={handleLogin} onBack={() => setShowLanding(true)} />
+          )
         ) : (
-          <Login onLogin={handleLogin} onBack={() => setShowLanding(true)} />
-        )
-      ) : (
-        <Dashboard user={user} onLogout={handleLogout} />
-      )}
-    </div>
+          <Dashboard user={user} onLogout={handleLogout} />
+        )}
+      </div>
+    </Suspense>
   );
 }

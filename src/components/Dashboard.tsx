@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { 
   LayoutDashboard, 
   ShoppingCart, 
@@ -18,24 +18,37 @@ import {
   Store,
   ClipboardList,
   Truck,
-  Calendar
+  Calendar,
+  RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { User, Boutique } from '../types';
 import { boutiqueService } from '../services/boutiqueService';
 import AlertDropdown from './AlertDropdown';
-import HomeView from './views/HomeView';
-import SalesView from './views/SalesView';
-import MySalesView from './views/MySalesView';
-import StockView from './views/StockView';
-import TransfersView from './views/TransfersView';
-import ReportsView from './views/ReportsView';
-import CorrectionsView from './views/CorrectionsView';
-import BoutiquesView from './views/BoutiquesView';
-import AccountsView from './views/AccountsView';
-import CatalogView from './views/CatalogView';
-import InvoicesView from './views/InvoicesView';
-import SuppliersView from './views/SuppliersView';
+
+// Chargement paresseux de toutes les vues — chaque vue devient un chunk séparé
+const HomeView      = lazy(() => import('./views/HomeView'));
+const SalesView     = lazy(() => import('./views/SalesView'));
+const MySalesView   = lazy(() => import('./views/MySalesView'));
+const StockView     = lazy(() => import('./views/StockView'));
+const TransfersView = lazy(() => import('./views/TransfersView'));
+const ReportsView   = lazy(() => import('./views/ReportsView'));
+const CorrectionsView = lazy(() => import('./views/CorrectionsView'));
+const BoutiquesView = lazy(() => import('./views/BoutiquesView'));
+const AccountsView  = lazy(() => import('./views/AccountsView'));
+const CatalogView   = lazy(() => import('./views/CatalogView'));
+const InvoicesView  = lazy(() => import('./views/InvoicesView'));
+const SuppliersView = lazy(() => import('./views/SuppliersView'));
+
+// Spinner affiché pendant le chargement d'une vue
+function ViewLoader() {
+  return (
+    <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+      <RefreshCw className="w-10 h-10 text-brand-blue animate-spin" />
+      <p className="text-slate-400 font-medium text-sm">Chargement...</p>
+    </div>
+  );
+}
 
 interface DashboardProps {
   user: User;
@@ -82,19 +95,19 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
 
   const renderView = () => {
     switch (activeTab) {
-      case 'home': return <HomeView user={user} onNavigate={setActiveTab} />;
-      case 'boutiques': return <BoutiquesView user={user} />;
-      case 'accounts': return <AccountsView />;
-      case 'catalog': return <CatalogView />;
-      case 'suppliers': return <SuppliersView user={user} />;
-      case 'sales': return <SalesView user={user} />;
-      case 'my-sales': return <MySalesView user={user} />;
-      case 'stock': return <StockView user={user} />;
-      case 'invoices': return <InvoicesView user={user} />;
-      case 'transfers': return <TransfersView user={user} />;
-      case 'reports': return <ReportsView user={user} />;
+      case 'home':        return <HomeView user={user} onNavigate={setActiveTab} />;
+      case 'boutiques':   return <BoutiquesView user={user} />;
+      case 'accounts':    return <AccountsView />;
+      case 'catalog':     return <CatalogView />;
+      case 'suppliers':   return <SuppliersView user={user} />;
+      case 'sales':       return <SalesView user={user} />;
+      case 'my-sales':    return <MySalesView user={user} />;
+      case 'stock':       return <StockView user={user} />;
+      case 'invoices':    return <InvoicesView user={user} />;
+      case 'transfers':   return <TransfersView user={user} />;
+      case 'reports':     return <ReportsView user={user} />;
       case 'corrections': return <CorrectionsView user={user} />;
-      default: return <HomeView user={user} onNavigate={setActiveTab} />;
+      default:            return <HomeView user={user} onNavigate={setActiveTab} />;
     }
   };
 
@@ -183,7 +196,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-4 sm:gap-6">
+          <div className="flex items-center gap-3 sm:gap-4">
             {/* Date du jour */}
             <div className="hidden md:flex items-center gap-2 bg-brand-blue/5 border border-brand-blue/15 rounded-xl px-4 py-2">
               <Calendar className="w-4 h-4 text-brand-blue" />
@@ -204,6 +217,16 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                 <UserIcon className="w-6 h-6" />
               </div>
             </div>
+            {/* Bouton Déconnexion dans le header */}
+            <div className="h-8 w-px bg-slate-200"></div>
+            <button
+              onClick={onLogout}
+              title="Se déconnecter"
+              className="flex items-center gap-2 px-3 py-2 rounded-xl text-slate-500 hover:bg-red-50 hover:text-red-600 border border-transparent hover:border-red-100 transition-all duration-200 group"
+            >
+              <LogOut className="w-5 h-5 flex-shrink-0" />
+              <span className="hidden sm:block text-sm font-semibold">Déconnexion</span>
+            </button>
           </div>
         </header>
 
@@ -217,7 +240,9 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
             >
-              {renderView()}
+              <Suspense fallback={<ViewLoader />}>
+                {renderView()}
+              </Suspense>
             </motion.div>
           </AnimatePresence>
         </div>

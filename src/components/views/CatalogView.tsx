@@ -29,6 +29,7 @@ export default function CatalogView() {
   const [stock, setStock] = useState<StockItem[]>([]);
   const [boutiques, setBoutiques] = useState<Boutique[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -191,10 +192,15 @@ export default function CatalogView() {
     return getStockForProduct(productId).reduce((acc, s) => acc + s.quantity, 0);
   };
 
-  const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (p.category?.toLowerCase() || '').includes(searchQuery.toLowerCase())
-  );
+  // Catégories uniques extraites des produits chargés
+  const categories = Array.from(new Set(products.map(p => p.category).filter(Boolean))) as string[];
+
+  const filteredProducts = products.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.category?.toLowerCase() || '').includes(searchQuery.toLowerCase());
+    const matchesCategory = !selectedCategory || p.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   if (loading && products.length === 0) {
     return (
@@ -220,7 +226,7 @@ export default function CatalogView() {
           <p className="text-sm text-slate-500 font-medium">Gérez le référentiel des articles et suivez les stocks globaux</p>
         </div>
         
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <div className="relative w-full sm:w-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input 
@@ -231,6 +237,17 @@ export default function CatalogView() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+          {/* Filtre par catégorie */}
+          <select
+            className="input-field py-2 font-semibold w-full sm:w-auto"
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+          >
+            <option value="">Toutes les catégories</option>
+            {categories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
           <button 
             onClick={() => handleOpenModal()}
             className="btn-primary flex justify-center items-center gap-2"

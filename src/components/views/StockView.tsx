@@ -67,6 +67,7 @@ export default function StockView({ user }: StockViewProps) {
   
   // Catalog Modal State
   const [catalogSearchQuery, setCatalogSearchQuery] = useState('');
+  const [catalogCategoryFilter, setCatalogCategoryFilter] = useState('');
   const [catalogProducts, setCatalogProducts] = useState<Product[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(false);
 
@@ -87,10 +88,15 @@ export default function StockView({ user }: StockViewProps) {
     }
   }, [isCatalogModalOpen]);
 
-  const filteredCatalogProducts = catalogProducts.filter(p => 
-    p.name.toLowerCase().includes(catalogSearchQuery.toLowerCase()) ||
-    (p.category || '').toLowerCase().includes(catalogSearchQuery.toLowerCase())
-  );
+  // Catégories uniques pour le filtre dans la modal catalogue
+  const catalogCategories = Array.from(new Set(catalogProducts.map(p => p.category).filter(Boolean))) as string[];
+
+  const filteredCatalogProducts = catalogProducts.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(catalogSearchQuery.toLowerCase()) ||
+      (p.category || '').toLowerCase().includes(catalogSearchQuery.toLowerCase());
+    const matchesCategory = !catalogCategoryFilter || p.category === catalogCategoryFilter;
+    return matchesSearch && matchesCategory;
+  });
 
   const fetchData = async () => {
     try {
@@ -594,16 +600,28 @@ export default function StockView({ user }: StockViewProps) {
                         Sélectionnez un article du catalogue pour l'ajouter à votre stock.
                       </p>
                     </div>
-                    {/* Search filter for loaded products */}
-                    <div className="relative">
-                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                      <input
-                        type="text"
-                        className="input-field pl-12 py-3"
-                        placeholder="Filtrer les articles..."
-                        value={catalogSearchQuery}
-                        onChange={(e) => setCatalogSearchQuery(e.target.value)}
-                      />
+                    {/* Search + filtre catégorie pour les produits du catalogue */}
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                        <input
+                          type="text"
+                          className="input-field pl-12 py-3 w-full"
+                          placeholder="Filtrer les articles..."
+                          value={catalogSearchQuery}
+                          onChange={(e) => setCatalogSearchQuery(e.target.value)}
+                        />
+                      </div>
+                      <select
+                        className="input-field py-3 font-semibold w-full sm:w-auto"
+                        value={catalogCategoryFilter}
+                        onChange={(e) => setCatalogCategoryFilter(e.target.value)}
+                      >
+                        <option value="">Toutes les catégories</option>
+                        {catalogCategories.map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
                     </div>
                     {/* Product list */}
                     <div className="max-h-[350px] overflow-y-auto rounded-xl border border-slate-200 divide-y divide-slate-100">
