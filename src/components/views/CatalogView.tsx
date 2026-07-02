@@ -15,7 +15,8 @@ import {
   BarChart3,
   CheckCircle2,
   RefreshCw,
-  Loader2
+  Loader2,
+  Trash2
 } from 'lucide-react';
 import { Product, StockItem, Boutique, Supplier } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -36,6 +37,7 @@ export default function CatalogView() {
   const [formLoading, setFormLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [deleteCategoryLoading, setDeleteCategoryLoading] = useState(false);
   const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
   
   // Form state
@@ -170,6 +172,27 @@ export default function CatalogView() {
     }
   };
 
+  const handleDeleteCategory = async () => {
+    if (!selectedCategory) return;
+    const count = filteredProducts.length;
+    const confirmed = window.confirm(
+      `⚠️ Supprimer TOUS les articles de la catégorie "${selectedCategory}" ?\n\n${count} article(s) seront définitivement supprimés, ainsi que leurs stocks associés.\n\nCette action est irréversible.`
+    );
+    if (!confirmed) return;
+    setDeleteCategoryLoading(true);
+    try {
+      const result = await productService.deleteByCategory(selectedCategory);
+      setSelectedCategory('');
+      await fetchData();
+      setError(null);
+      alert(`✅ ${result.message} (${result.deletedCount} article(s) supprimés)`);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Erreur lors de la suppression de la catégorie.');
+    } finally {
+      setDeleteCategoryLoading(false);
+    }
+  };
+
   const toggleStatus = async (product: Product) => {
     try {
       setLoading(true);
@@ -237,17 +260,34 @@ export default function CatalogView() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          {/* Filtre par catégorie */}
-          <select
-            className="input-field py-2 font-semibold w-full sm:w-auto"
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-          >
-            <option value="">Toutes les catégories</option>
-            {categories.map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
+          {/* Filtre par catégorie + bouton suppression catégorie */}
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <select
+              className="input-field py-2 font-semibold flex-1 sm:w-auto"
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+            >
+              <option value="">Toutes les catégories</option>
+              {categories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+            {selectedCategory && (
+              <button
+                onClick={handleDeleteCategory}
+                disabled={deleteCategoryLoading}
+                title={`Supprimer toute la catégorie "${selectedCategory}"`}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 font-bold text-sm transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                {deleteCategoryLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
+                <span className="hidden sm:inline">Suppr. catégorie</span>
+              </button>
+            )}
+          </div>
           <button 
             onClick={() => handleOpenModal()}
             className="btn-primary flex justify-center items-center gap-2"

@@ -44,5 +44,12 @@ export const productService = {
   toggleStatus: async (id: string, status: 'ACTIVE' | 'INACTIVE'): Promise<{ message: string; status: string }> => {
     const response = await api.patch<{ message: string; status: string }>(`/api/products/${id}/status`, { status });
     return response.data;
+  },
+
+  deleteByCategory: async (category: string): Promise<{ message: string; deletedCount: number }> => {
+    const response = await api.delete<{ message: string; deletedCount: number }>(
+      `/api/products/category/${encodeURIComponent(category)}`
+    );
+    return response.data;
   }
 };
